@@ -14,20 +14,26 @@
 
 ## Chunk 1: IPC & Main Process Foundation
 
-### Task 1: Add new IPC channels to types and preload
+### Task 1: Add new IPC channels and update types
 
 **Files:**
-- Modify: `src/shared/types.ts` — add new IPC channel constants
+- Modify: `src/shared/types.ts` — add new IPC channel constants, make `position` optional in MamaSettings
 - Modify: `src/main/preload.ts` — expose new channels
 - Modify: `src/renderer/electron.d.ts` — add type declarations
 
-- [ ] **Step 1: Add IPC channel constants**
+- [ ] **Step 1: Add IPC channel constants and update MamaSettings**
 
 In `src/shared/types.ts`, add to the `IPC_CHANNELS` const:
 
 ```typescript
 SET_IGNORE_MOUSE: 'mama:set-ignore-mouse',
 SAVE_POSITION: 'mama:save-position',
+```
+
+In the `MamaSettings` interface, make `position` optional to allow gradual migration:
+
+```typescript
+position?: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
 ```
 
 - [ ] **Step 2: Add preload bridge methods**
@@ -108,7 +114,7 @@ const win = new BrowserWindow({
 });
 ```
 
-- [ ] **Step 2: Add IPC listeners in main.ts**
+- [ ] **Step 2: Add IPC listeners in main.ts with screen bounds clamping**
 
 After `registerIpcHandlers(win, collectionManager);`, add:
 
@@ -123,13 +129,22 @@ ipcMain.on(IPC_CHANNELS.SET_IGNORE_MOUSE, (_event, ignore: boolean) => {
   }
 });
 
-ipcMain.on(IPC_CHANNELS.SAVE_POSITION, (_event, x: number, y: number) => {
+ipcMain.on(IPC_CHANNELS.SAVE_POSITION, (_event, rawX: number, rawY: number) => {
+  // Clamp position to screen work area
+  const { width: screenW, height: screenH } = screen.getPrimaryDisplay().workAreaSize;
+  const [winW, winH] = [200, 250];
+  const x = Math.max(0, Math.min(rawX, screenW - winW));
+  const y = Math.max(0, Math.min(rawY, screenH - winH));
+
   const store = getStore();
   (store as any).set('windowPosition', { x, y });
+
+  // Snap window if it was dragged out of bounds
+  if (win && !win.isDestroyed() && (x !== rawX || y !== rawY)) {
+    win.setPosition(x, y);
+  }
 });
 ```
-
-Import `IPC_CHANNELS` is already imported.
 
 - [ ] **Step 3: Remove old applyPosition from ipc-handlers.ts**
 
@@ -147,10 +162,10 @@ Expected: No errors
 
 ```bash
 git add src/main/main.ts src/main/ipc-handlers.ts
-git commit -m "feat(main): dynamic mouse events, position save/restore, remove presets"
+git commit -m "feat(main): dynamic mouse events, position save/restore with bounds clamping"
 ```
 
-## Chunk 2: Renderer Mini/Expand State
+## Chunk 2: Renderer Components
 
 ### Task 3: Create useWidgetMode hook
 
@@ -173,13 +188,13 @@ interface UseWidgetModeReturn {
   onCharacterEnter: () => void;
   onCharacterLeave: () => void;
   triggerAutoExpand: () => void;
+  scheduleCollapse: (delay: number) => void;
 }
 
 export function useWidgetMode(): UseWidgetModeReturn {
   const [mode, setMode] = useState<WidgetMode>('mini');
   const [direction, setDirection] = useState<ExpandDirection>('up');
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const autoExpandTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isHovering = useRef(false);
 
   const cancelCollapse = () => {
@@ -189,7 +204,7 @@ export function useWidgetMode(): UseWidgetModeReturn {
     }
   };
 
-  const startCollapse = (delay: number) => {
+  const scheduleCollapse = useCallback((delay: number) => {
     cancelCollapse();
     collapseTimer.current = setTimeout(() => {
       if (!isHovering.current) {
@@ -197,7 +212,7 @@ export function useWidgetMode(): UseWidgetModeReturn {
       }
       collapseTimer.current = null;
     }, delay);
-  };
+  }, []);
 
   const computeDirection = useCallback((): ExpandDirection => {
     const screenH = window.screen.availHeight;
@@ -215,29 +230,28 @@ export function useWidgetMode(): UseWidgetModeReturn {
 
   const onCharacterLeave = useCallback(() => {
     isHovering.current = false;
-    startCollapse(1000);
-  }, []);
+    scheduleCollapse(1000);
+  }, [scheduleCollapse]);
 
   const triggerAutoExpand = useCallback(() => {
     setDirection(computeDirection());
     setMode('expanded');
-    // Auto-collapse is handled by SpeechBubble's onComplete callback
+    // Auto-collapse is handled by SpeechBubble's onComplete → scheduleCollapse
   }, [computeDirection]);
 
   useEffect(() => {
-    return () => {
-      cancelCollapse();
-      if (autoExpandTimer.current) clearTimeout(autoExpandTimer.current);
-    };
+    return () => { cancelCollapse(); };
   }, []);
 
-  return { mode, direction, onCharacterEnter, onCharacterLeave, triggerAutoExpand };
+  return { mode, direction, onCharacterEnter, onCharacterLeave, triggerAutoExpand, scheduleCollapse };
 }
 ```
 
+Note: `scheduleCollapse` is exposed separately from `onCharacterLeave` so that auto-expand completion can request collapse without corrupting `isHovering` state.
+
 - [ ] **Step 2: Verify TypeScript compiles**
 
-Run: `npx tsc -p tsconfig.renderer.json --noEmit` (or just `npx tsc --noEmit`)
+Run: `npx tsc --noEmit`
 Expected: No errors
 
 - [ ] **Step 3: Commit**
@@ -247,24 +261,201 @@ git add src/renderer/hooks/useWidgetMode.ts
 git commit -m "feat(hook): add useWidgetMode for mini/expand state management"
 ```
 
-### Task 4: Update App.tsx with mini/expand layout
+### Task 4: Update SpeechBubble with onComplete callback
+
+**Files:**
+- Modify: `src/renderer/components/SpeechBubble.tsx`
+
+- [ ] **Step 1: Add onComplete prop**
+
+Update the interface:
+
+```typescript
+interface SpeechBubbleProps {
+  message: string;
+  mood: string;
+  onComplete?: () => void;
+}
+```
+
+Update function signature:
+
+```typescript
+export function SpeechBubble({ message, mood, onComplete }: SpeechBubbleProps) {
+```
+
+In the auto-hide timeout (where it sets `setAnimState('out')`), call onComplete after fade-out:
+
+```typescript
+hideTimerRef.current = setTimeout(() => {
+  setAnimState('out');
+  setTimeout(() => {
+    setVisible(false);
+    onComplete?.();
+  }, 400);
+}, 4000);
+```
+
+- [ ] **Step 2: Verify TypeScript compiles**
+
+Run: `npx tsc --noEmit`
+Expected: No errors
+
+- [ ] **Step 3: Commit**
+
+```bash
+git add src/renderer/components/SpeechBubble.tsx
+git commit -m "feat(bubble): add onComplete callback for collapse trigger"
+```
+
+### Task 5: Add MiniBar component and update Character with forwardRef
+
+**Files:**
+- Modify: `src/renderer/components/UsageIndicator.tsx` — add MiniBar export
+- Modify: `src/renderer/components/Character.tsx` — reduce to 60px, forwardRef, mouse event props
+
+- [ ] **Step 1: Add MiniBar to UsageIndicator.tsx**
+
+Add before the `styles` const:
+
+```typescript
+/** Compact single-line bar for mini mode */
+export function MiniBar({ utilizationPercent, mood }: {
+  utilizationPercent: number;
+  mood: Expression;
+}) {
+  const clamped = clamp(utilizationPercent);
+  const color = MOOD_COLORS[mood] ?? '#9ca3af';
+  return (
+    <div style={{
+      display: 'flex',
+      alignItems: 'center',
+      gap: 4,
+      background: 'rgba(0, 0, 0, 0.65)',
+      borderRadius: 6,
+      padding: '3px 6px',
+      backdropFilter: 'blur(6px)',
+      border: '1px solid rgba(255, 255, 255, 0.1)',
+    }}>
+      <div style={{
+        width: 36,
+        height: 5,
+        background: 'rgba(255, 255, 255, 0.25)',
+        borderRadius: 3,
+        overflow: 'hidden',
+      }}>
+        <div style={{
+          height: '100%',
+          width: `${clamped}%`,
+          background: color,
+          borderRadius: 3,
+          transition: 'width 0.5s ease',
+        }} />
+      </div>
+      <span style={{
+        fontSize: 9,
+        color: '#ffffff',
+        fontFamily: 'system-ui, -apple-system, sans-serif',
+        fontWeight: 700,
+        textShadow: '0 1px 3px rgba(0,0,0,1)',
+      }}>
+        {clamped.toFixed(0)}%
+      </span>
+    </div>
+  );
+}
+```
+
+- [ ] **Step 2: Update Character.tsx with forwardRef, reduced size, and mouse events**
+
+```typescript
+import React, { CSSProperties, forwardRef } from 'react';
+import { MamaMood, MamaErrorExpression } from '../../shared/types';
+import mamaPng from '../assets/claude-mama.png';
+
+type Expression = MamaMood | MamaErrorExpression;
+
+interface CharacterProps {
+  expression: Expression;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
+}
+
+const IMG_W = 60;
+const IMG_H = 60;
+```
+
+Change `MoodOverlay` pixel scale: `const px = 2.5;`
+
+Convert export to forwardRef:
+
+```typescript
+export const Character = forwardRef<HTMLDivElement, CharacterProps>(
+  function Character({ expression, onMouseEnter, onMouseLeave }, ref) {
+    const containerStyle: CSSProperties = {
+      position: 'relative',
+      width: IMG_W,
+      height: IMG_H,
+      animation: MOOD_ANIMATIONS[expression],
+      cursor: 'grab',
+      WebkitAppRegion: 'drag' as any,
+    };
+
+    // ... imgStyle and auraStyle unchanged ...
+
+    return (
+      <div
+        ref={ref}
+        style={containerStyle}
+        onMouseEnter={onMouseEnter}
+        onMouseLeave={onMouseLeave}
+      >
+        {auraStyle && <div style={auraStyle as CSSProperties} />}
+        <img src={mamaPng} alt="Claude Mama" style={imgStyle} draggable={false} />
+        <MoodOverlay expression={expression} />
+      </div>
+    );
+  }
+);
+```
+
+- [ ] **Step 3: Verify TypeScript compiles**
+
+Run: `npx tsc --noEmit`
+Expected: No errors
+
+- [ ] **Step 4: Commit**
+
+```bash
+git add src/renderer/components/UsageIndicator.tsx src/renderer/components/Character.tsx
+git commit -m "feat(ui): add MiniBar, reduce character to 60px with forwardRef"
+```
+
+### Task 6: Update App.tsx with mini/expand layout
 
 **Files:**
 - Modify: `src/renderer/App.tsx`
 
+Dependencies: Tasks 3-5 must be complete (useWidgetMode, SpeechBubble onComplete, MiniBar, Character forwardRef).
+
 - [ ] **Step 1: Integrate useWidgetMode and restructure MainView**
 
-Replace the `MainView` function:
-
 ```typescript
+import React, { useState, useEffect, useRef } from 'react';
+import { useMamaState } from './hooks/useMamaState';
 import { useWidgetMode } from './hooks/useWidgetMode';
-// ... existing imports
+import { Character } from './components/Character';
+import { SpeechBubble } from './components/SpeechBubble';
+import { WeeklyBar, FiveHourBar, MiniBar, OfflineLabel } from './components/UsageIndicator';
+import Settings from './pages/Settings';
+import { Locale } from '../shared/types';
+import { t } from '../shared/i18n';
 
 function MainView() {
   const mamaState = useMamaState();
-  const { mode, direction, onCharacterEnter, onCharacterLeave, triggerAutoExpand } = useWidgetMode();
+  const { mode, direction, onCharacterEnter, onCharacterLeave, triggerAutoExpand, scheduleCollapse } = useWidgetMode();
   const [locale, setLocale] = useState<Locale>('ko');
-  const prevMessageRef = React.useRef<string>('');
+  const prevMessageRef = useRef<string>('');
 
   useEffect(() => {
     window.electronAPI.getSettings().then((s) => {
@@ -294,12 +485,10 @@ function MainView() {
   const isExpanded = mode === 'expanded';
 
   const handleBubbleComplete = () => {
-    // After bubble fade-out, start collapse (if not hovering)
-    // The 1s delay is in the useWidgetMode hook via onCharacterLeave
-    onCharacterLeave();
+    // Schedule collapse without corrupting isHovering state
+    scheduleCollapse(1000);
   };
 
-  // Build content order based on direction
   const bubble = isExpanded ? (
     <SpeechBubble message={message} mood={mood} onComplete={handleBubbleComplete} />
   ) : null;
@@ -355,199 +544,41 @@ function MainView() {
     </div>
   );
 }
+
+// ... App component unchanged
 ```
 
-Add `MiniBar` to the import from UsageIndicator (will be created in Task 6).
-Add `onComplete` prop to SpeechBubble import (will be added in Task 5).
+- [ ] **Step 2: Verify TypeScript compiles and build**
 
-- [ ] **Step 2: Commit** (may have type errors until Tasks 5-6)
+Run: `npx tsc --noEmit && npm run build`
+Expected: No errors
+
+- [ ] **Step 3: Commit**
 
 ```bash
 git add src/renderer/App.tsx
 git commit -m "feat(ui): integrate mini/expand modes with direction-aware layout"
 ```
 
-### Task 5: Update SpeechBubble with onComplete callback
-
-**Files:**
-- Modify: `src/renderer/components/SpeechBubble.tsx`
-
-- [ ] **Step 1: Add onComplete prop**
-
-Update the interface:
-
-```typescript
-interface SpeechBubbleProps {
-  message: string;
-  mood: string;
-  onComplete?: () => void;
-}
-```
-
-Update function signature:
-
-```typescript
-export function SpeechBubble({ message, mood, onComplete }: SpeechBubbleProps) {
-```
-
-In the auto-hide timeout (where it sets `setAnimState('out')`), call onComplete after fade-out:
-
-```typescript
-hideTimerRef.current = setTimeout(() => {
-  setAnimState('out');
-  setTimeout(() => {
-    setVisible(false);
-    onComplete?.();
-  }, 400);
-}, 4000);
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add src/renderer/components/SpeechBubble.tsx
-git commit -m "feat(bubble): add onComplete callback for collapse trigger"
-```
-
-### Task 6: Add MiniBar component and update Character props
-
-**Files:**
-- Modify: `src/renderer/components/UsageIndicator.tsx` — add MiniBar export
-- Modify: `src/renderer/components/Character.tsx` — reduce size, add mouse event props
-
-- [ ] **Step 1: Add MiniBar to UsageIndicator.tsx**
-
-Add at the end of the file, before the `styles` const:
-
-```typescript
-/** Compact single-line bar for mini mode */
-export function MiniBar({ utilizationPercent, mood }: {
-  utilizationPercent: number;
-  mood: Expression;
-}) {
-  const clamped = clamp(utilizationPercent);
-  const color = MOOD_COLORS[mood] ?? '#9ca3af';
-  return (
-    <div style={{
-      display: 'flex',
-      alignItems: 'center',
-      gap: 4,
-      background: 'rgba(0, 0, 0, 0.65)',
-      borderRadius: 6,
-      padding: '3px 6px',
-      backdropFilter: 'blur(6px)',
-      border: '1px solid rgba(255, 255, 255, 0.1)',
-    }}>
-      <div style={{
-        width: 36,
-        height: 5,
-        background: 'rgba(255, 255, 255, 0.25)',
-        borderRadius: 3,
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          height: '100%',
-          width: `${clamped}%`,
-          background: color,
-          borderRadius: 3,
-          transition: 'width 0.5s ease',
-        }} />
-      </div>
-      <span style={{
-        fontSize: 9,
-        color: '#ffffff',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        fontWeight: 700,
-        textShadow: '0 1px 3px rgba(0,0,0,1)',
-      }}>
-        {clamped.toFixed(0)}%
-      </span>
-    </div>
-  );
-}
-```
-
-- [ ] **Step 2: Update Character.tsx**
-
-Change dimensions and add mouse event props:
-
-```typescript
-const IMG_W = 60;
-const IMG_H = 60;
-
-interface CharacterProps {
-  expression: Expression;
-  onMouseEnter?: () => void;
-  onMouseLeave?: () => void;
-}
-```
-
-Update the component to forward events and add drag region:
-
-```typescript
-export function Character({ expression, onMouseEnter, onMouseLeave }: CharacterProps) {
-  const containerStyle: CSSProperties = {
-    position: 'relative',
-    width: IMG_W,
-    height: IMG_H,
-    animation: MOOD_ANIMATIONS[expression],
-    cursor: 'grab',
-    WebkitAppRegion: 'drag' as any,
-  };
-
-  // ... imgStyle and auraStyle unchanged ...
-
-  return (
-    <div
-      style={containerStyle}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
-    >
-      {auraStyle && <div style={auraStyle as CSSProperties} />}
-      <img src={mamaPng} alt="Claude Mama" style={imgStyle} draggable={false} />
-      <MoodOverlay expression={expression} />
-    </div>
-  );
-}
-```
-
-Also scale down the MoodOverlay pixel sizes. Change `const px = 4;` to `const px = 2.5;` inside `MoodOverlay` to proportionally shrink overlays for the 60px character.
-
-- [ ] **Step 3: Verify TypeScript compiles**
-
-Run: `npx tsc --noEmit`
-Expected: No errors
-
-- [ ] **Step 4: Verify build**
-
-Run: `npm run build`
-Expected: Successful build
-
-- [ ] **Step 5: Commit**
-
-```bash
-git add src/renderer/components/UsageIndicator.tsx src/renderer/components/Character.tsx
-git commit -m "feat(ui): add MiniBar, reduce character to 60px, add drag region"
-```
-
 ## Chunk 3: Hit-Test Mouse Events & Drag Position
 
-### Task 7: Implement hit-test pointer event switching
+### Task 7: Implement hit-test pointer event switching with IPC deduplication
 
 **Files:**
 - Modify: `src/renderer/App.tsx` — add mousemove listener for hit-test
+- Modify: `src/renderer/components/Character.tsx` — already has forwardRef from Task 5
 
 - [ ] **Step 1: Add hit-test logic to MainView**
 
-The character element has `onMouseEnter`/`onMouseLeave` that call `setIgnoreMouse`. Add a global mousemove handler on the document to handle the transparent area:
+Add a global mousemove handler with IPC deduplication to avoid flooding:
 
 ```typescript
 // Inside MainView, add:
-const characterRef = React.useRef<HTMLDivElement>(null);
+const characterRef = useRef<HTMLDivElement>(null);
+const lastIgnoreRef = useRef(true);
 
 useEffect(() => {
   const handleMouseMove = (e: MouseEvent) => {
-    // Check if mouse is over the character area
     if (characterRef.current) {
       const rect = characterRef.current.getBoundingClientRect();
       const isOverCharacter =
@@ -556,7 +587,11 @@ useEffect(() => {
         e.clientY >= rect.top &&
         e.clientY <= rect.bottom;
 
-      window.electronAPI.setIgnoreMouse(!isOverCharacter);
+      const shouldIgnore = !isOverCharacter;
+      if (shouldIgnore !== lastIgnoreRef.current) {
+        lastIgnoreRef.current = shouldIgnore;
+        window.electronAPI.setIgnoreMouse(shouldIgnore);
+      }
     }
   };
 
@@ -576,28 +611,6 @@ Pass `characterRef` to the Character component:
 />
 ```
 
-Update Character.tsx to accept a forwarded ref:
-
-```typescript
-import React, { CSSProperties, forwardRef } from 'react';
-
-export const Character = forwardRef<HTMLDivElement, CharacterProps>(
-  function Character({ expression, onMouseEnter, onMouseLeave }, ref) {
-    // ... same implementation, but use ref on the outer div:
-    return (
-      <div
-        ref={ref}
-        style={containerStyle}
-        onMouseEnter={onMouseEnter}
-        onMouseLeave={onMouseLeave}
-      >
-        {/* ... */}
-      </div>
-    );
-  }
-);
-```
-
 - [ ] **Step 2: Verify TypeScript compiles and build**
 
 Run: `npx tsc --noEmit && npm run build`
@@ -606,37 +619,58 @@ Expected: No errors
 - [ ] **Step 3: Commit**
 
 ```bash
-git add src/renderer/App.tsx src/renderer/components/Character.tsx
-git commit -m "feat: hit-test based dynamic pointer event switching"
+git add src/renderer/App.tsx
+git commit -m "feat: hit-test based dynamic pointer event switching with IPC dedup"
 ```
 
 ### Task 8: Save position on drag end
 
 **Files:**
-- Modify: `src/renderer/App.tsx` — add drag end detection
+- Modify: `src/renderer/App.tsx` — add drag-aware position save
 
 - [ ] **Step 1: Detect drag end and save position**
 
-Electron's `-webkit-app-region: drag` handles the actual dragging. We detect when the window has moved by listening to the `mouseup` event after drag, then saving the new position:
-
-In MainView, add:
+Electron's `-webkit-app-region: drag` handles the actual dragging. Since JS drag events don't fire for `-webkit-app-region`, we detect position changes via mouseup on the character:
 
 ```typescript
+// Inside MainView, add:
 useEffect(() => {
+  let dragCheckInterval: ReturnType<typeof setInterval> | null = null;
   let lastX = window.screenX;
   let lastY = window.screenY;
 
-  const checkPosition = () => {
+  const startTracking = () => {
+    lastX = window.screenX;
+    lastY = window.screenY;
+    dragCheckInterval = setInterval(() => {
+      if (window.screenX !== lastX || window.screenY !== lastY) {
+        lastX = window.screenX;
+        lastY = window.screenY;
+      }
+    }, 100);
+  };
+
+  const stopTracking = () => {
+    if (dragCheckInterval) {
+      clearInterval(dragCheckInterval);
+      dragCheckInterval = null;
+    }
+    // Save final position if changed
     if (window.screenX !== lastX || window.screenY !== lastY) {
-      lastX = window.screenX;
-      lastY = window.screenY;
-      window.electronAPI.savePosition(lastX, lastY);
+      window.electronAPI.savePosition(window.screenX, window.screenY);
+    } else if (lastX !== 0 || lastY !== 0) {
+      // Save position on any mouseup in case drag happened
+      window.electronAPI.savePosition(window.screenX, window.screenY);
     }
   };
 
-  // Check position periodically during potential drag
-  const interval = setInterval(checkPosition, 200);
-  return () => clearInterval(interval);
+  document.addEventListener('mousedown', startTracking);
+  document.addEventListener('mouseup', stopTracking);
+  return () => {
+    document.removeEventListener('mousedown', startTracking);
+    document.removeEventListener('mouseup', stopTracking);
+    if (dragCheckInterval) clearInterval(dragCheckInterval);
+  };
 }, []);
 ```
 
@@ -644,73 +678,38 @@ useEffect(() => {
 
 ```bash
 git add src/renderer/App.tsx
-git commit -m "feat: save window position after drag via periodic check"
+git commit -m "feat: save window position on drag end"
 ```
 
-## Chunk 4: Settings Cleanup & Polish
+## Chunk 4: Settings Cleanup & Final Verification
 
-### Task 9: Remove position dropdown from Settings
+### Task 9: Remove position dropdown from Settings and clean up types
 
 **Files:**
 - Modify: `src/renderer/pages/Settings.tsx` — remove position UI
-- Modify: `src/shared/i18n.ts` — keep i18n keys (harmless), no changes needed
+- Modify: `src/shared/types.ts` — remove `position` field from MamaSettings entirely
 
 - [ ] **Step 1: Remove position section from Settings.tsx**
 
-Remove the `POSITIONS` const, `POS_KEYS` const, and the entire position card from the JSX (the `{/* Position */}` section). Remove `position` from the local state default.
+Remove the `POSITIONS` const, `POS_KEYS` const, and the entire `{/* Position */}` JSX section. Remove `position` from the local state default object.
 
-- [ ] **Step 2: Verify build**
+- [ ] **Step 2: Remove `position` from MamaSettings in types.ts**
+
+Delete the `position` field entirely from the `MamaSettings` interface (was made optional in Task 1).
+
+- [ ] **Step 3: Verify build**
 
 Run: `npm run build`
 Expected: No errors
 
-- [ ] **Step 3: Commit**
+- [ ] **Step 4: Commit**
 
 ```bash
-git add src/renderer/pages/Settings.tsx
-git commit -m "chore: remove position dropdown from Settings (replaced by drag)"
+git add src/renderer/pages/Settings.tsx src/shared/types.ts
+git commit -m "chore: remove position dropdown and type (replaced by drag)"
 ```
 
-### Task 10: Add mini/expand CSS transitions
-
-**Files:**
-- Modify: `src/renderer/styles/styles.css` — add transition classes
-
-- [ ] **Step 1: Add transition styles**
-
-Append to `styles.css`:
-
-```css
-/* Mini/Expand transitions */
-.widget-content {
-  transition: opacity 300ms ease, transform 300ms ease;
-}
-
-.widget-content.mini {
-  opacity: 1;
-}
-
-.widget-content.expanded {
-  opacity: 1;
-}
-
-/* Bubble direction flip for downward expansion */
-.bubble-down {
-  transform: scaleY(-1);
-}
-.bubble-down > * {
-  transform: scaleY(-1);
-}
-```
-
-- [ ] **Step 2: Commit**
-
-```bash
-git add src/renderer/styles/styles.css
-git commit -m "style: add mini/expand transition CSS"
-```
-
-### Task 11: Final verification
+### Task 10: Final verification
 
 - [ ] **Step 1: Run all tests**
 
@@ -735,5 +734,6 @@ Verify:
 6. Restart app → window appears at saved position
 7. Widget at bottom of screen → bubble expands upward
 8. Widget at top of screen → bubble expands downward
+9. Drag to screen edge → position clamped to visible area
 
 - [ ] **Step 4: Commit any fixes**
