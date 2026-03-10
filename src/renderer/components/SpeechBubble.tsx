@@ -49,7 +49,7 @@ export function SpeechBubble({ message, mood }: SpeechBubbleProps) {
         hideTimerRef.current = setTimeout(() => {
           setAnimState('out');
           setTimeout(() => setVisible(false), 400);
-        }, 5000);
+        }, 4000);
       }
     };
 
@@ -63,6 +63,55 @@ export function SpeechBubble({ message, mood }: SpeechBubbleProps) {
   }, [message, mood]);
 
   if (!visible) return null;
+
+  // Mood-specific bubble styles
+  const moodStyles: Record<string, CSSProperties> = {
+    angry: {
+      background: 'rgba(255, 240, 240, 0.97)',
+      border: '2px solid #ef4444',
+      borderRadius: 8,
+      color: '#991b1b',
+    },
+    worried: {
+      background: 'rgba(240, 248, 255, 0.95)',
+      border: '1.5px dashed #93c5fd',
+      color: '#1e3a5f',
+    },
+    happy: {
+      background: 'rgba(255, 245, 248, 0.97)',
+      border: '1.5px solid #f9a8d4',
+      color: '#831843',
+    },
+    proud: {
+      background: 'linear-gradient(135deg, rgba(255,251,235,0.97), rgba(255,245,215,0.97))',
+      border: '2px solid #fbbf24',
+      color: '#78350f',
+      boxShadow: '0 4px 16px rgba(251, 191, 36, 0.3), 0 0 8px rgba(255, 215, 0, 0.2)',
+    },
+    sleeping: {
+      background: 'rgba(240, 240, 245, 0.85)',
+      border: '1px solid #d1d5db',
+      color: '#6b7280',
+      opacity: 0.8,
+    },
+    confused: {
+      background: 'rgba(245, 245, 245, 0.9)',
+      border: '1.5px solid #9ca3af',
+      color: '#4b5563',
+    },
+  };
+
+  const moodTailColors: Record<string, string> = {
+    angry: 'rgba(255, 240, 240, 0.97)',
+    worried: 'rgba(240, 248, 255, 0.95)',
+    happy: 'rgba(255, 245, 248, 0.97)',
+    proud: 'rgba(255, 251, 235, 0.97)',
+    sleeping: 'rgba(240, 240, 245, 0.85)',
+    confused: 'rgba(245, 245, 245, 0.9)',
+  };
+
+  const currentMoodStyle = moodStyles[mood] ?? {};
+  const tailColor = moodTailColors[mood] ?? 'rgba(255, 255, 255, 0.95)';
 
   const bubbleStyle: CSSProperties = {
     position: 'relative',
@@ -84,6 +133,7 @@ export function SpeechBubble({ message, mood }: SpeechBubbleProps) {
         ? 'bubbleFadeOut 0.4s ease forwards'
         : 'none',
     marginBottom: 8,
+    ...currentMoodStyle,
   };
 
   // Triangle tail pointing down toward the character
@@ -96,7 +146,7 @@ export function SpeechBubble({ message, mood }: SpeechBubbleProps) {
     height: 0,
     borderLeft: '8px solid transparent',
     borderRight: '8px solid transparent',
-    borderTop: '10px solid rgba(255, 255, 255, 0.95)',
+    borderTop: `10px solid ${tailColor}`,
     filter: 'drop-shadow(0 2px 2px rgba(0,0,0,0.1))',
   };
 

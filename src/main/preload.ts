@@ -8,6 +8,9 @@ const CHANNELS = {
   SETTINGS_GET: 'mama:settings-get',
   SETTINGS_SET: 'mama:settings-set',
   SHOW_SETTINGS: 'mama:show-settings',
+  COLLECTION_GET: 'mama:collection-get',
+  COLLECTION_UPDATED: 'mama:collection-updated',
+  SHARE_CARD: 'mama:share-card',
 } as const;
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -31,5 +34,19 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   showSettings: (): void => {
     ipcRenderer.send(CHANNELS.SHOW_SETTINGS);
+  },
+
+  getCollection: (): Promise<unknown> => {
+    return ipcRenderer.invoke(CHANNELS.COLLECTION_GET);
+  },
+
+  onCollectionUpdated: (callback: (state: unknown) => void) => {
+    const listener = (_event: Electron.IpcRendererEvent, state: unknown) => callback(state);
+    ipcRenderer.on(CHANNELS.COLLECTION_UPDATED, listener);
+    return () => ipcRenderer.removeListener(CHANNELS.COLLECTION_UPDATED, listener);
+  },
+
+  shareCard: (quoteId?: string): Promise<unknown> => {
+    return ipcRenderer.invoke(CHANNELS.SHARE_CARD, quoteId);
   },
 });

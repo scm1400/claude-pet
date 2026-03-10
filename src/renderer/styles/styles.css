@@ -77,3 +77,79 @@ html, body {
   0%, 100% { opacity: 0.5; }
   50% { opacity: 0.8; }
 }
+
+/* Mood-specific character animations */
+@keyframes angryShake {
+  0%, 100% { transform: translateX(0) scale(1.0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-2px) scale(1.02); }
+  20%, 40%, 60%, 80% { transform: translateX(2px) scale(1.02); }
+}
+
+@keyframes worriedSway {
+  0%, 100% { transform: translateX(0) rotate(0deg) scale(1.0); }
+  25% { transform: translateX(-3px) rotate(-2deg) scale(1.01); }
+  75% { transform: translateX(3px) rotate(2deg) scale(1.01); }
+}
+
+@keyframes happyBounce {
+  0%, 100% { transform: translateY(0) scale(1.0); }
+  30% { transform: translateY(-6px) scale(1.04); }
+  50% { transform: translateY(0) scale(1.0); }
+  70% { transform: translateY(-3px) scale(1.02); }
+}
+
+@keyframes proudJump {
+  0%, 100% { transform: translateY(0) rotate(0deg) scale(1.0); }
+  25% { transform: translateY(-10px) rotate(-3deg) scale(1.06); }
+  50% { transform: translateY(0) rotate(0deg) scale(1.0); }
+  75% { transform: translateY(-5px) rotate(3deg) scale(1.03); }
+}
+
+@keyframes sleepingTilt {
+  0%, 100% { transform: rotate(0deg) scale(1.0); }
+  50% { transform: rotate(5deg) scale(0.98); }
+}
+
+@keyframes confusedWobble {
+  0%, 100% { transform: rotate(0deg); }
+  25% { transform: rotate(-5deg); }
+  75% { transform: rotate(5deg); }
+}
+
+/* Background aura effects */
+@keyframes angryPulse {
+  0%, 100% { box-shadow: 0 0 15px rgba(239, 68, 68, 0); }
+  50% { box-shadow: 0 0 25px rgba(239, 68, 68, 0.4); }
+}
+
+@keyframes proudGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 215, 0, 0.1); }
+  50% { box-shadow: 0 0 30px rgba(255, 215, 0, 0.5); }
+}
+
+@keyframes happyGlow {
+  0%, 100% { box-shadow: 0 0 10px rgba(255, 182, 193, 0); }
+  50% { box-shadow: 0 0 20px rgba(255, 182, 193, 0.4); }
+}
+
+/* Floating particles */
+@keyframes floatUp {
+  0% { transform: translateY(0) scale(1); opacity: 0.8; }
+  100% { transform: translateY(-40px) scale(0.5); opacity: 0; }
+}
+
+@keyframes confetti {
+  0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(-50px) rotate(360deg); opacity: 0; }
+}
+
+@keyframes rainDrop {
+  0% { transform: translateY(-10px); opacity: 0; }
+  20% { opacity: 0.6; }
+  100% { transform: translateY(30px); opacity: 0; }
+}
+
+@keyframes twinkle {
+  0%, 100% { opacity: 0; transform: scale(0.5); }
+  50% { opacity: 1; transform: scale(1); }
+}

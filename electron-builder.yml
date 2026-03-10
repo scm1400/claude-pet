@@ -33,5 +33,8 @@ nsis:
   createStartMenuShortcut: true
 dmg:
   writeUpdateInfo: false
+extraResources:
+  - from: build/tray-icon.png
+    to: tray-icon.png
 extraMetadata:
   main: dist/main/main/main.js

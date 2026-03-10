@@ -3,6 +3,8 @@ import Store from 'electron-store';
 import { IPC_CHANNELS, MamaSettings } from '../shared/types';
 import { showSettingsWindow } from './settings-window';
 import { updateAutoLaunch } from './auto-launch';
+import { QuoteCollectionManager } from '../core/quote-collection';
+import { generateShareCard } from './share-card';
 
 const defaults: MamaSettings = {
   position: 'bottom-right',
@@ -51,7 +53,10 @@ function applyPosition(
   win.setPosition(x, y);
 }
 
-export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
+export function registerIpcHandlers(
+  mainWindow?: BrowserWindow,
+  collectionManager?: QuoteCollectionManager,
+): void {
   ipcMain.handle(IPC_CHANNELS.SETTINGS_GET, () => {
     return store.store;
   });
@@ -76,5 +81,15 @@ export function registerIpcHandlers(mainWindow?: BrowserWindow): void {
 
   ipcMain.on(IPC_CHANNELS.SHOW_SETTINGS, () => {
     showSettingsWindow();
+  });
+
+  // Collection
+  ipcMain.handle(IPC_CHANNELS.COLLECTION_GET, () => {
+    return collectionManager?.getState() ?? null;
+  });
+
+  // Share card
+  ipcMain.handle(IPC_CHANNELS.SHARE_CARD, async (_event, quoteId?: string) => {
+    return generateShareCard(quoteId);
   });
 }

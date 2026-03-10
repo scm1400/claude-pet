@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { MamaSettings, MamaState, Locale } from '../../shared/types';
 import { t, LOCALE_LABELS, UIStringKey } from '../../shared/i18n';
+import Collection from './Collection';
 
 const POSITIONS: MamaSettings['position'][] = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
 const LOCALES: Locale[] = ['ko', 'en', 'ja', 'zh'];
@@ -21,6 +22,7 @@ export default function Settings() {
   const [mamaState, setMamaState] = useState<MamaState | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<'settings' | 'collection'>('settings');
 
   const locale = settings.locale;
   const i = (key: UIStringKey) => t(locale, key);
@@ -65,109 +67,131 @@ export default function Settings() {
         <button style={s.closeBtn} onClick={() => window.close()} title={i('close')}>✕</button>
       </div>
 
-      {/* Scrollable content */}
-      <div style={s.content}>
-        {/* Language */}
-        <div style={s.card}>
-          <div style={s.cardLabel}>{i('language')}</div>
-          <div style={s.localeGrid}>
-            {LOCALES.map((loc) => (
-              <button
-                key={loc}
-                style={{
-                  ...s.posBtn,
-                  ...(settings.locale === loc ? s.posBtnActive : {}),
-                }}
-                onClick={() => setSettings((prev) => ({ ...prev, locale: loc }))}
-              >
-                {LOCALE_LABELS[loc]}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Position */}
-        <div style={s.card}>
-          <div style={s.cardLabel}>{i('settings_position')}</div>
-          <div style={s.posGrid}>
-            {POSITIONS.map((pos) => (
-              <button
-                key={pos}
-                style={{
-                  ...s.posBtn,
-                  ...(settings.position === pos ? s.posBtnActive : {}),
-                }}
-                onClick={() => setSettings((prev) => ({ ...prev, position: pos }))}
-              >
-                {i(POS_KEYS[pos])}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Auto-start */}
-        <div style={s.card}>
-          <label style={s.toggleRow}>
-            <span>{i('auto_start')}</span>
-            <div
-              style={{ ...s.toggle, background: settings.autoStart ? '#ec4899' : '#d1d5db' }}
-              onClick={() => setSettings((prev) => ({ ...prev, autoStart: !prev.autoStart }))}
-            >
-              <div style={{ ...s.toggleKnob, transform: settings.autoStart ? 'translateX(16px)' : 'translateX(0)' }} />
-            </div>
-          </label>
-        </div>
-
-        {/* Status */}
-        <div style={s.card}>
-          <div style={s.cardLabel}>{i('current_status')}</div>
-          <div style={s.statRow}>
-            <span style={s.statKey}>{i('weekly_usage')}</span>
-            <span style={s.statVal}>
-              {mamaState ? `${mamaState.utilizationPercent.toFixed(1)}%` : '—'}
-            </span>
-          </div>
-          <div style={s.statRow}>
-            <span style={s.statKey}>{i('five_hour_usage')}</span>
-            <span style={s.statVal}>
-              {mamaState?.fiveHourPercent != null ? `${mamaState.fiveHourPercent.toFixed(1)}%` : '—'}
-            </span>
-          </div>
-          <div style={s.statRow}>
-            <span style={s.statKey}>{i('data_source')}</span>
-            <span style={{
-              ...s.statVal,
-              color: mamaState?.dataSource === 'api' ? '#22c55e'
-                : mamaState?.dataSource === 'cache' ? '#f59e0b' : '#ef4444',
-            }}>
-              {i(sourceKey)}
-            </span>
-          </div>
-          <div style={s.statRow}>
-            <span style={s.statKey}>{i('current_mood')}</span>
-            <span style={s.statVal}>{moodKey ? i(moodKey) : '—'}</span>
-          </div>
-        </div>
-
-        {/* API status */}
-        <div style={s.card}>
-          <div style={s.cardLabel}>{i('api_connection')}</div>
-          {errorMsg ? (
-            <div style={badge('#fef2f2', '#dc2626')}>{errorMsg}</div>
-          ) : mamaState?.dataSource === 'api' ? (
-            <div style={badge('#f0fdf4', '#16a34a')}>{i('connected')}</div>
-          ) : (
-            <div style={badge('#fffbeb', '#92400e')}>
-              {i('login_required').replace('{code}', 'claude')}
-            </div>
-          )}
-        </div>
-
-        {/* Save */}
-        <button style={s.saveBtn} onClick={handleSave}>
-          {saved ? i('saved') : i('save')}
+      {/* Tab bar */}
+      <div style={s.tabBar}>
+        <button
+          style={{ ...s.tab, ...(activeTab === 'settings' ? s.tabActive : {}) }}
+          onClick={() => setActiveTab('settings')}
+        >
+          {i('tab_settings')}
+        </button>
+        <button
+          style={{ ...s.tab, ...(activeTab === 'collection' ? s.tabActive : {}) }}
+          onClick={() => setActiveTab('collection')}
+        >
+          {i('tab_collection')}
         </button>
       </div>
+
+      {/* Conditional content */}
+      {activeTab === 'settings' ? (
+        <div style={s.content}>
+          {/* Language */}
+          <div style={s.card}>
+            <div style={s.cardLabel}>{i('language')}</div>
+            <div style={s.localeGrid}>
+              {LOCALES.map((loc) => (
+                <button
+                  key={loc}
+                  style={{
+                    ...s.posBtn,
+                    ...(settings.locale === loc ? s.posBtnActive : {}),
+                  }}
+                  onClick={() => setSettings((prev) => ({ ...prev, locale: loc }))}
+                >
+                  {LOCALE_LABELS[loc]}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Position */}
+          <div style={s.card}>
+            <div style={s.cardLabel}>{i('settings_position')}</div>
+            <div style={s.posGrid}>
+              {POSITIONS.map((pos) => (
+                <button
+                  key={pos}
+                  style={{
+                    ...s.posBtn,
+                    ...(settings.position === pos ? s.posBtnActive : {}),
+                  }}
+                  onClick={() => setSettings((prev) => ({ ...prev, position: pos }))}
+                >
+                  {i(POS_KEYS[pos])}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Auto-start */}
+          <div style={s.card}>
+            <label style={s.toggleRow}>
+              <span>{i('auto_start')}</span>
+              <div
+                style={{ ...s.toggle, background: settings.autoStart ? '#ec4899' : '#d1d5db' }}
+                onClick={() => setSettings((prev) => ({ ...prev, autoStart: !prev.autoStart }))}
+              >
+                <div style={{ ...s.toggleKnob, transform: settings.autoStart ? 'translateX(16px)' : 'translateX(0)' }} />
+              </div>
+            </label>
+          </div>
+
+          {/* Status */}
+          <div style={s.card}>
+            <div style={s.cardLabel}>{i('current_status')}</div>
+            <div style={s.statRow}>
+              <span style={s.statKey}>{i('weekly_usage')}</span>
+              <span style={s.statVal}>
+                {mamaState ? `${mamaState.utilizationPercent.toFixed(1)}%` : '—'}
+              </span>
+            </div>
+            <div style={s.statRow}>
+              <span style={s.statKey}>{i('five_hour_usage')}</span>
+              <span style={s.statVal}>
+                {mamaState?.fiveHourPercent != null ? `${mamaState.fiveHourPercent.toFixed(1)}%` : '—'}
+              </span>
+            </div>
+            <div style={s.statRow}>
+              <span style={s.statKey}>{i('data_source')}</span>
+              <span style={{
+                ...s.statVal,
+                color: mamaState?.dataSource === 'api' ? '#22c55e'
+                  : mamaState?.dataSource === 'cache' ? '#f59e0b' : '#ef4444',
+              }}>
+                {i(sourceKey)}
+              </span>
+            </div>
+            <div style={s.statRow}>
+              <span style={s.statKey}>{i('current_mood')}</span>
+              <span style={s.statVal}>{moodKey ? i(moodKey) : '—'}</span>
+            </div>
+          </div>
+
+          {/* API status */}
+          <div style={s.card}>
+            <div style={s.cardLabel}>{i('api_connection')}</div>
+            {errorMsg ? (
+              <div style={badge('#fef2f2', '#dc2626')}>{errorMsg}</div>
+            ) : mamaState?.dataSource === 'api' ? (
+              <div style={badge('#f0fdf4', '#16a34a')}>{i('connected')}</div>
+            ) : (
+              <div style={badge('#fffbeb', '#92400e')}>
+                {i('login_required').replace('{code}', 'claude')}
+              </div>
+            )}
+          </div>
+
+          {/* Save */}
+          <button style={s.saveBtn} onClick={handleSave}>
+            {saved ? i('saved') : i('save')}
+          </button>
+        </div>
+      ) : (
+        <div style={s.content}>
+          <Collection locale={locale} />
+        </div>
+      )}
     </div>
   );
 }
@@ -246,5 +270,17 @@ const s: Record<string, React.CSSProperties> = {
     width: '100%', background: '#ec4899', color: '#fff', border: 'none',
     borderRadius: 10, padding: '12px 0', fontSize: 14, fontWeight: 600,
     cursor: 'pointer', marginTop: 2,
+  },
+  tabBar: {
+    display: 'flex', background: '#fff', borderBottom: '1px solid #e5e7eb',
+    flexShrink: 0,
+  },
+  tab: {
+    flex: 1, padding: '10px 0', fontSize: 13, fontWeight: 500,
+    border: 'none', background: 'transparent', color: '#6b7280',
+    cursor: 'pointer', borderBottom: '2px solid transparent',
+  },
+  tabActive: {
+    color: '#ec4899', borderBottomColor: '#ec4899', fontWeight: 600,
   },
 };

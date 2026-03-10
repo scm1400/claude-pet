@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 600px;
+    height: 400px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #fce7f3 0%, #fdf2f8 50%, #fff1f2 100%);
+    display: flex;
+    flex-direction: column;
+    padding: 32px;
+    overflow: hidden;
+  }
+  .header {
+    font-size: 14px; font-weight: 700; color: #9ca3af;
+    text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 24px;
+  }
+  .content { display: flex; gap: 24px; flex: 1; align-items: center; }
+  .character-area {
+    width: 140px; height: 140px; display: flex;
+    align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .character-area img { width: 120px; height: 120px; image-rendering: pixelated; }
+  .info { flex: 1; display: flex; flex-direction: column; gap: 10px; }
+  .mood-label { font-size: 28px; font-weight: 800; color: #1a1a1a; }
+  .mood-emoji { margin-right: 8px; }
+  .quote {
+    font-size: 15px; color: #374151; line-height: 1.5; font-style: italic;
+    padding: 10px 14px; background: rgba(255,255,255,0.7); border-radius: 12px;
+    border-left: 4px solid var(--mood-color, #ec4899);
+  }
+  .bars { display: flex; gap: 14px; margin-top: 4px; }
+  .bar-group { flex: 1; }
+  .bar-label { font-size: 11px; font-weight: 600; color: #6b7280; margin-bottom: 3px; }
+  .bar-track { height: 8px; background: rgba(0,0,0,0.1); border-radius: 4px; overflow: hidden; }
+  .bar-fill { height: 100%; border-radius: 4px; }
+  .bar-meta { display: flex; justify-content: space-between; align-items: center; margin-top: 2px; }
+  .bar-value { font-size: 12px; font-weight: 700; color: #374151; }
+  .bar-reset { font-size: 10px; color: #9ca3af; }
+  .footer {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-top: auto; padding-top: 12px; border-top: 1px solid rgba(0,0,0,0.06);
+  }
+  .brand { font-size: 12px; color: #9ca3af; font-weight: 500; }
+  .github { font-size: 11px; color: #9ca3af; text-decoration: none; }
+  .timestamp { font-size: 10px; color: #9ca3af; }
+  .badge {
+    font-size: 10px; font-weight: 700; padding: 3px 8px;
+    border-radius: 10px; text-transform: uppercase;
+  }
+</style>
+</head>
+<body>
+  <div class="header">Claude Mama Report Card</div>
+  <div class="content">
+    <div class="character-area"><img id="character" src="" alt="mama" /></div>
+    <div class="info">
+      <div class="mood-label">
+        <span class="mood-emoji" id="moodEmoji"></span>
+        <span id="moodText"></span>
+      </div>
+      <div class="quote" id="quote"></div>
+      <div class="bars">
+        <div class="bar-group">
+          <div class="bar-label">7-Day</div>
+          <div class="bar-track"><div class="bar-fill" id="weeklyBar"></div></div>
+          <div class="bar-meta">
+            <span class="bar-value" id="weeklyValue"></span>
+            <span class="bar-reset" id="weeklyReset"></span>
+          </div>
+        </div>
+        <div class="bar-group">
+          <div class="bar-label">5-Hour</div>
+          <div class="bar-track"><div class="bar-fill" id="fiveHourBar"></div></div>
+          <div class="bar-meta">
+            <span class="bar-value" id="fiveHourValue"></span>
+            <span class="bar-reset" id="fiveHourReset"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">
+    <span class="brand">claude-mama</span>
+    <span class="timestamp" id="generatedAt"></span>
+    <span class="github">github.com/scm1400/claude-mama</span>
+    <span class="badge" id="rarityBadge"></span>
+  </div>
+  <script>
+    var MOOD_EMOJI = {
+      angry: '😤', worried: '😟', happy: '😊',
+      proud: '🥹', confused: '❓', sleeping: '😴',
+    };
+
+    function formatCountdown(isoStr) {
+      if (!isoStr) return '';
+      var now = Date.now();
+      var target = new Date(isoStr).getTime();
+      var diff = target - now;
+      if (diff <= 0) return '';
+      var hours = Math.floor(diff / 3600000);
+      var mins = Math.floor((diff % 3600000) / 60000);
+      return '↻ ' + hours + 'h' + mins + 'm';
+    }
+
+    window.populateCard = function(data) {
+      var emoji = MOOD_EMOJI[data.mood] || '❓';
+      var color = data.moodColor || '#ec4899';
+
+      document.getElementById('moodEmoji').textContent = emoji;
+      document.getElementById('moodText').textContent = data.moodName || data.mood;
+      document.getElementById('quote').textContent = '\u201C' + data.message + '\u201D';
+      document.getElementById('quote').style.setProperty('--mood-color', color);
+
+      var weeklyBar = document.getElementById('weeklyBar');
+      weeklyBar.style.width = data.weeklyPercent + '%';
+      weeklyBar.style.background = color;
+      document.getElementById('weeklyValue').textContent = data.weeklyPercent.toFixed(1) + '%';
+      document.getElementById('weeklyReset').textContent = formatCountdown(data.resetsAt);
+
+      var fiveHourBar = document.getElementById('fiveHourBar');
+      var fhPct = data.fiveHourPercent != null ? data.fiveHourPercent : 0;
+      fiveHourBar.style.width = fhPct + '%';
+      fiveHourBar.style.background = fhPct > 90 ? '#ef4444' : '#3b82f6';
+      document.getElementById('fiveHourValue').textContent = data.fiveHourPercent != null ? fhPct.toFixed(1) + '%' : '—';
+      document.getElementById('fiveHourReset').textContent = formatCountdown(data.fiveHourResetsAt);
+
+      if (data.characterDataUrl) {
+        document.getElementById('character').src = data.characterDataUrl;
+      }
+
+      if (data.generatedAt) {
+        document.getElementById('generatedAt').textContent = data.generatedAt;
+      }
+
+      var badge = document.getElementById('rarityBadge');
+      if (data.rarityBadge) {
+        badge.textContent = data.rarityBadge;
+        badge.style.background = color + '20';
+        badge.style.color = color;
+      }
+    };
+  </script>
+</body>
+</html>

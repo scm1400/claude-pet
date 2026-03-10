@@ -25,6 +25,7 @@ export interface UsageData {
   weeklyUtilization: number | null;
   fiveHourUtilization: number | null;
   resetsAt: string | null;
+  fiveHourResetsAt: string | null;
   dataSource: 'api' | 'cache' | 'none';
   stale: boolean;
   error: string | null;
@@ -119,7 +120,7 @@ function fallbackToCache(): UsageData {
     const bestEntry = todayEntry ?? entries.sort((a, b) => b.date.localeCompare(a.date))[0];
 
     if (!bestEntry) {
-      return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, dataSource: 'cache', stale: true, error: 'No cache data available' };
+      return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'cache', stale: true, error: 'No cache data available' };
     }
 
     const totalTokens = Object.values(bestEntry.tokensByModel).reduce((a, b) => a + b, 0);
@@ -131,7 +132,7 @@ function fallbackToCache(): UsageData {
     return {
       weeklyUtilization: utilization,
       fiveHourUtilization: null,
-      resetsAt: null,
+      resetsAt: null, fiveHourResetsAt: null,
       dataSource: 'cache',
       stale: isStale,
       error: null,
@@ -140,7 +141,7 @@ function fallbackToCache(): UsageData {
     return {
       weeklyUtilization: null,
       fiveHourUtilization: null,
-      resetsAt: null,
+      resetsAt: null, fiveHourResetsAt: null,
       dataSource: 'none',
       stale: true,
       error: 'Cache unavailable',
@@ -157,7 +158,8 @@ async function fetchUsage(token: string): Promise<UsageData> {
     return {
       weeklyUtilization: json.seven_day?.utilization ?? null,
       fiveHourUtilization: json.five_hour?.utilization ?? null,
-      resetsAt: json.seven_day?.resets_at ?? json.five_hour?.resets_at ?? null,
+      resetsAt: json.seven_day?.resets_at ?? null,
+      fiveHourResetsAt: json.five_hour?.resets_at ?? null,
       dataSource: 'api',
       stale: false,
       error: null,
@@ -165,14 +167,14 @@ async function fetchUsage(token: string): Promise<UsageData> {
   }
 
   if (result.status === 401) {
-    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, dataSource: 'none', stale: true, error: '401' };
+    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, error: '401' };
   }
 
   if (result.status === 429) {
-    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, dataSource: 'none', stale: true, error: '429' };
+    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, error: '429' };
   }
 
-  return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, dataSource: 'none', stale: true, error: `HTTP ${result.status}` };
+  return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, error: `HTTP ${result.status}` };
 }
 
 async function fetchOnce(token: string): Promise<UsageData> {
@@ -195,7 +197,7 @@ export class UsageTracker {
   private currentState: UsageData = {
     weeklyUtilization: null,
     fiveHourUtilization: null,
-    resetsAt: null,
+    resetsAt: null, fiveHourResetsAt: null,
     dataSource: 'none',
     stale: false,
     error: null,
@@ -238,7 +240,7 @@ export class UsageTracker {
       return {
         weeklyUtilization: null,
         fiveHourUtilization: null,
-        resetsAt: null,
+        resetsAt: null, fiveHourResetsAt: null,
         dataSource: 'none',
         stale: false,
         error: 'NO_CREDENTIALS',
@@ -254,7 +256,7 @@ export class UsageTracker {
         return {
           weeklyUtilization: null,
           fiveHourUtilization: null,
-          resetsAt: null,
+          resetsAt: null, fiveHourResetsAt: null,
           dataSource: 'none',
           stale: false,
           error: 'NO_CREDENTIALS',

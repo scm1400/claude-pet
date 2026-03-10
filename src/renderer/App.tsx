@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useMamaState } from './hooks/useMamaState';
 import { Character } from './components/Character';
 import { SpeechBubble } from './components/SpeechBubble';
-import { UsageIndicator } from './components/UsageIndicator';
+import { WeeklyBar, FiveHourBar, OfflineLabel } from './components/UsageIndicator';
 import Settings from './pages/Settings';
 import { Locale } from '../shared/types';
 import { t } from '../shared/i18n';
@@ -23,6 +23,7 @@ function MainView() {
   const message = mamaState?.message ?? t(locale, 'loading_message');
   const utilizationPercent = mamaState?.utilizationPercent ?? 0;
   const fiveHourPercent = mamaState?.fiveHourPercent ?? null;
+  const fiveHourResetsAt = mamaState?.fiveHourResetsAt ?? null;
   const dataSource = mamaState?.dataSource ?? 'none';
 
   return (
@@ -45,18 +46,27 @@ function MainView() {
       {/* Small gap between bubble tail and character */}
       <div style={{ height: 10 }} />
 
-      {/* Character face */}
+      {/* Character */}
       <Character expression={mood} />
 
-      {/* Usage bar below the character */}
-      <UsageIndicator
-        utilizationPercent={utilizationPercent}
-        fiveHourPercent={fiveHourPercent}
-        resetsAt={mamaState?.resetsAt ?? null}
-        mood={mood}
-        dataSource={dataSource}
-        locale={locale}
-      />
+      {/* Usage panels below character */}
+      {dataSource === 'none' ? (
+        <OfflineLabel locale={locale} />
+      ) : (
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 6 }}>
+          <WeeklyBar
+            utilizationPercent={utilizationPercent}
+            resetsAt={mamaState?.resetsAt ?? null}
+            mood={mood}
+          />
+          {fiveHourPercent != null && (
+            <FiveHourBar
+              fiveHourPercent={fiveHourPercent}
+              fiveHourResetsAt={fiveHourResetsAt}
+            />
+          )}
+        </div>
+      )}
     </div>
   );
 }

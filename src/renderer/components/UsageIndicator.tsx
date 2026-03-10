@@ -4,15 +4,6 @@ import { t } from '../../shared/i18n';
 
 type Expression = MamaMood | MamaErrorExpression;
 
-interface UsageIndicatorProps {
-  utilizationPercent: number;
-  fiveHourPercent: number | null;
-  resetsAt: string | null;
-  mood: Expression;
-  dataSource: 'api' | 'cache' | 'none';
-  locale?: Locale;
-}
-
 const MOOD_COLORS: Record<Expression, string> = {
   angry: '#ef4444',
   worried: '#eab308',
@@ -21,6 +12,9 @@ const MOOD_COLORS: Record<Expression, string> = {
   confused: '#9ca3af',
   sleeping: '#9ca3af',
 };
+
+const BAR_WIDTH = 50;
+const BAR_HEIGHT = 7;
 
 function clamp(v: number): number {
   return Math.min(100, Math.max(0, v));
@@ -50,45 +44,21 @@ function useCountdown(resetsAt: string | null): string | null {
   return text;
 }
 
-function Bar({ percent, color, label }: { percent: number; color: string; label: string }) {
+function Panel({ percent, color, label, countdown }: {
+  percent: number;
+  color: string;
+  label: string;
+  countdown: string | null;
+}) {
   const clamped = clamp(percent);
   return (
-    <div style={styles.barCol}>
-      <div style={styles.barLabel}>{label}</div>
+    <div style={styles.panel}>
+      <div style={styles.topRow}>
+        <div style={styles.label}>{label}</div>
+        <div style={styles.percent}>{clamped.toFixed(0)}%</div>
+      </div>
       <div style={styles.track}>
         <div style={{ ...styles.fill, width: `${clamped}%`, background: color }} />
-      </div>
-      <div style={styles.percent}>{clamped.toFixed(0)}%</div>
-    </div>
-  );
-}
-
-export function UsageIndicator({ utilizationPercent, fiveHourPercent, resetsAt, mood, dataSource, locale = 'ko' }: UsageIndicatorProps) {
-  const countdown = useCountdown(resetsAt);
-  if (dataSource === 'none') {
-    return (
-      <div style={{
-        marginTop: 6,
-        fontSize: 11,
-        color: '#9ca3af',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        textAlign: 'center',
-      }}>
-        {t(locale, 'offline')}
-      </div>
-    );
-  }
-
-  const weeklyColor = MOOD_COLORS[mood] ?? '#9ca3af';
-  const fiveHourColor = fiveHourPercent != null && fiveHourPercent > 90 ? '#ef4444' : '#60a5fa';
-
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginTop: 6, gap: 2 }}>
-      <div style={styles.container}>
-        <Bar percent={utilizationPercent} color={weeklyColor} label="7d" />
-        {fiveHourPercent != null && (
-          <Bar percent={fiveHourPercent} color={fiveHourColor} label="5h" />
-        )}
       </div>
       {countdown && (
         <div style={styles.countdown}>↻ {countdown}</div>
@@ -97,47 +67,109 @@ export function UsageIndicator({ utilizationPercent, fiveHourPercent, resetsAt, 
   );
 }
 
+/** Left panel (7-day) */
+export function WeeklyBar({ utilizationPercent, resetsAt, mood }: {
+  utilizationPercent: number;
+  resetsAt: string | null;
+  mood: Expression;
+}) {
+  const countdown = useCountdown(resetsAt);
+  const color = MOOD_COLORS[mood] ?? '#9ca3af';
+  return (
+    <Panel
+      percent={utilizationPercent}
+      color={color}
+      label="7d"
+      countdown={countdown}
+    />
+  );
+}
+
+/** Right panel (5-hour) */
+export function FiveHourBar({ fiveHourPercent, fiveHourResetsAt }: {
+  fiveHourPercent: number;
+  fiveHourResetsAt: string | null;
+}) {
+  const countdown = useCountdown(fiveHourResetsAt);
+  const color = fiveHourPercent > 90 ? '#ef4444' : '#60a5fa';
+  return (
+    <Panel
+      percent={fiveHourPercent}
+      color={color}
+      label="5h"
+      countdown={countdown}
+    />
+  );
+}
+
+/** Offline text for no-data state */
+export function OfflineLabel({ locale = 'ko' }: { locale?: Locale }) {
+  return (
+    <div style={{
+      marginTop: 6,
+      fontSize: 11,
+      color: '#ffffff',
+      fontFamily: 'system-ui, -apple-system, sans-serif',
+      textAlign: 'center',
+      textShadow: '0 1px 3px rgba(0,0,0,0.8)',
+    }}>
+      {t(locale, 'offline')}
+    </div>
+  );
+}
+
 const styles: Record<string, CSSProperties> = {
-  container: {
-    display: 'flex',
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  countdown: {
-    fontSize: 8,
-    color: '#9ca3af',
-    fontFamily: 'system-ui, -apple-system, sans-serif',
-  },
-  barCol: {
+  panel: {
     display: 'flex',
     flexDirection: 'column',
-    alignItems: 'center',
-    gap: 2,
+    gap: 3,
+    background: 'rgba(0, 0, 0, 0.65)',
+    borderRadius: 8,
+    padding: '5px 8px',
+    backdropFilter: 'blur(6px)',
+    minWidth: 60,
+    border: '1px solid rgba(255, 255, 255, 0.1)',
   },
-  barLabel: {
-    fontSize: 8,
-    color: '#9ca3af',
+  topRow: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  label: {
+    fontSize: 10,
+    color: '#ffffff',
     fontFamily: 'system-ui, -apple-system, sans-serif',
-    fontWeight: 600,
+    fontWeight: 700,
     letterSpacing: '0.05em',
+    textShadow: '0 1px 3px rgba(0,0,0,1)',
+  },
+  percent: {
+    fontSize: 10,
+    color: '#ffffff',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontWeight: 700,
+    textShadow: '0 1px 3px rgba(0,0,0,1)',
   },
   track: {
-    width: 50,
-    height: 5,
-    background: 'rgba(0, 0, 0, 0.15)',
-    borderRadius: 3,
+    width: BAR_WIDTH,
+    height: BAR_HEIGHT,
+    background: 'rgba(255, 255, 255, 0.25)',
+    borderRadius: 4,
     overflow: 'hidden',
+    boxShadow: 'inset 0 1px 2px rgba(0,0,0,0.3)',
   },
   fill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 4,
     transition: 'width 0.5s ease, background 0.3s ease',
+    boxShadow: '0 0 4px rgba(255,255,255,0.3)',
   },
-  percent: {
-    fontSize: 9,
-    color: '#6b7280',
+  countdown: {
+    fontSize: 8,
+    color: '#e5e7eb',
     fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontWeight: 600,
+    textShadow: '0 1px 3px rgba(0,0,0,1)',
     textAlign: 'center',
   },
 };

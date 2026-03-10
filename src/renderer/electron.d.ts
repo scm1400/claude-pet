@@ -1,3 +1,8 @@
+declare module '*.png' {
+  const src: string;
+  export default src;
+}
+
 import { MamaState, MamaSettings } from '../shared/types';
 
 declare global {
@@ -8,6 +13,9 @@ declare global {
       getSettings: () => Promise<MamaSettings>;
       setSettings: (settings: Partial<MamaSettings>) => Promise<MamaSettings>;
       showSettings: () => void;
+      getCollection(): Promise<unknown>;
+      onCollectionUpdated(callback: (state: unknown) => void): () => void;
+      shareCard(quoteId?: string): Promise<unknown>;
     };
   }
 }

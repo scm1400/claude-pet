@@ -13,6 +13,10 @@ A desktop mascot that guilt-trips you into using your Claude Code tokens — jus
 
 <br/>
 
+<img src="docs/images/character.png" width="200" alt="Claude Mama character" />
+
+<br/>
+
 | Angry | Worried | Happy | Proud |
 |:---:|:---:|:---:|:---:|
 | 😡 "You haven't used any today?!" | 😟 "Everyone else is using theirs..." | 😊 "That's my kid!" | 🥹 "Mom's buying chicken tonight~" |
@@ -36,14 +40,37 @@ Claude Mama is a tiny desktop widget that monitors your [Claude Code](https://do
 ## Features
 
 - **Real-time usage tracking** — Pulls 7-day and 5-hour utilization from the Anthropic OAuth API
-- **Pixel art character** — A flat pixel-art mama with 6 mood expressions (angry, worried, happy, proud, confused, sleeping)
-- **Guilt-powered notifications** — Randomized mom-style messages that rotate every 5 minutes
+- **Pixel art character** — A pixel-art mama with curler hair and 6 mood expressions (angry, worried, happy, proud, confused, sleeping)
+- **Guilt-powered messages** — Randomized mom-style messages that rotate every 2 minutes
 - **5-hour burnout warning** — "Take a break~ You're almost at the limit!" (she cares, in her own way)
+- **Share Report Card** — Save a shareable PNG card with your current mood, usage stats, and reset countdown
+- **Quote Collection (도감)** — Collect 86 unique mama quotes across 4 rarity tiers (Common, Rare, Legendary, Secret)
 - **System tray** — Lives quietly in your taskbar, judging you silently
-- **Settings panel** — Position, auto-start, language selection
+- **Settings panel** — Position, auto-start, language selection, and collection viewer
 - **4 languages** — 한국어, English, 日本語, 中文
 - **Auto-start** — Boots with your OS so you can never escape mom's watchful eye
-- **Cache fallback** — When the API is unreachable, she checks your local stats cache (she always finds out)
+- **Auto-update** — Mom keeps herself up to date via GitHub Releases
+
+### Share Report Card
+
+Save your current mama status as a PNG image — perfect for sharing on social media.
+
+<div align="center">
+<img src="docs/images/share-card-example.png" width="500" alt="Share Report Card example" />
+</div>
+
+The card includes mood, quote, 7-day/5-hour usage bars with reset countdowns, and a UTC timestamp.
+
+### Quote Collection
+
+Mama has 86 unique quotes spread across 4 rarity tiers:
+
+| Rarity | Count | How to Unlock |
+|--------|------:|---------------|
+| ⚪ Common | 73 | Displayed during normal use |
+| 🔵 Rare | 5 | Hit specific usage milestones (0%, 50%, 100% of 5hr, etc.) |
+| 🟡 Legendary | 3 | Achieve streaks and lifetime milestones |
+| 🔴 Secret | 5 | Use the app on holidays or at 3 AM |
 
 ## Installation
 
@@ -65,11 +92,11 @@ Grab the latest installer from [Releases](https://github.com/scm1400/claude-mama
 
 ```
 ┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
-│ Anthropic OAuth  │────>│ Usage Tracker │────>│ Mood Engine │
-│ Usage API        │     │ (5min poll)   │     │             │
+│ Anthropic OAuth │────>│ Usage Tracker │───>│ Mood Engine │
+│ Usage API       │     │ (5min poll)   │    │             │
 └─────────────────┘     └──────────────┘     └──────┬──────┘
-                                                     │
-        ┌────────────────────────────────────────────┘
+                                                    │
+        ┌───────────────────────────────────────────┘
         │
         v
 ┌──────────────┐     ┌──────────────┐     ┌──────────────┐
@@ -124,16 +151,23 @@ src/
 ├── core/                  # No Electron dependencies
 │   ├── mood-engine.ts     # Pure function: usage data → mood state
 │   ├── messages.ts        # Localized mama message pools
-│   └── usage-tracker.ts   # API polling + cache fallback
+│   ├── usage-tracker.ts   # API polling + cache fallback
+│   ├── quote-registry.ts  # Central registry of all 86 collectible quotes
+│   ├── quote-triggers.ts  # Trigger conditions for rare/legendary/secret quotes
+│   └── quote-collection.ts # Collection manager (unlock tracking)
 ├── main/                  # Electron main process
 │   ├── main.ts            # App entry, window creation
 │   ├── ipc-handlers.ts    # Settings IPC + position management
 │   ├── settings-window.ts # Settings window factory
+│   ├── share-card.ts      # Offscreen PNG card generation
 │   ├── tray.ts            # System tray setup
-│   └── auto-launch.ts     # OS auto-start registration
+│   ├── auto-launch.ts     # OS auto-start registration
+│   └── auto-updater.ts    # GitHub Releases auto-update
 ├── renderer/              # React UI
 │   ├── components/        # Character, SpeechBubble, UsageIndicator
-│   ├── pages/Settings.tsx # Settings panel
+│   ├── pages/
+│   │   ├── Settings.tsx   # Settings panel with tab navigation
+│   │   └── Collection.tsx # Quote collection (dogam) viewer
 │   └── hooks/             # useMamaState hook
 └── shared/                # Shared types & i18n
     ├── types.ts
@@ -150,6 +184,9 @@ A: Because Korean moms are the gold standard of guilt-tripping. You can switch t
 
 **Q: My usage is at 0% but I've been coding all day?**
 A: Make sure Claude Code is logged in. Mom can't monitor what she can't see.
+
+**Q: How do I unlock secret quotes?**
+A: Use the app on holidays (New Year, Chuseok, Christmas) or stay up coding past 3 AM. Mom notices everything.
 
 **Q: Is this a joke?**
 A: The guilt is real. The chicken reward is not (yet).

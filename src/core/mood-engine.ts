@@ -6,6 +6,7 @@ export interface UsageInput {
   fiveHourUtilization: number | null;
   error: string | null;
   resetsAt?: string | null;
+  fiveHourResetsAt?: string | null;
   dataSource?: 'api' | 'cache' | 'none';
   stale?: boolean;
   locale?: Locale;
@@ -21,6 +22,7 @@ export function computeMood(input: UsageInput): MamaState {
     fiveHourUtilization,
     error,
     resetsAt = null,
+    fiveHourResetsAt = null,
     dataSource = 'none',
     stale = false,
     locale = 'ko',
@@ -34,6 +36,7 @@ export function computeMood(input: UsageInput): MamaState {
       fiveHourPercent: null,
       message: getMessage('sleeping', locale),
       resetsAt: null,
+      fiveHourResetsAt: null,
       dataSource: 'none',
       stale: false,
       error,
@@ -48,6 +51,7 @@ export function computeMood(input: UsageInput): MamaState {
       fiveHourPercent: fiveHourUtilization,
       message: getMessage('confused', locale),
       resetsAt,
+      fiveHourResetsAt,
       dataSource,
       stale,
       error,
@@ -80,6 +84,7 @@ export function computeMood(input: UsageInput): MamaState {
     fiveHourPercent: fiveHourUtilization,
     message,
     resetsAt,
+    fiveHourResetsAt,
     dataSource,
     stale,
     error: null,
