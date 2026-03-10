@@ -31,8 +31,24 @@ nsis:
   perMachine: false
   createDesktopShortcut: true
   createStartMenuShortcut: true
+  installerSidebar: build/installerSidebar.bmp
+  uninstallerSidebar: build/installerSidebar.bmp
+  installerHeader: build/installerHeader.bmp
+  uninstallerHeader: build/installerHeader.bmp
 dmg:
   writeUpdateInfo: false
+  background: build/dmg-background.png
+  window:
+    width: 540
+    height: 380
+  contents:
+    - x: 140
+      y: 250
+      type: file
+    - x: 400
+      y: 250
+      type: link
+      path: /Applications
 extraResources:
   - from: build/tray-icon.png
     to: tray-icon.png
