@@ -13,7 +13,7 @@ A desktop mascot that guilt-trips you into using your Claude Code tokens — jus
 
 <br/>
 
-<img src="docs/images/character.png" width="200" alt="Claude Mama character" />
+<img src="docs/images/claude-mama.png" width="100%" alt="Claude Mama character" />
 
 <br/>
 
