@@ -68,42 +68,48 @@ function Panel({ percent, color, label, countdown }: {
 }
 
 /** Left panel (7-day) */
-export function WeeklyBar({ utilizationPercent, resetsAt, mood }: {
+export function WeeklyBar({ utilizationPercent, resetsAt, mood, stale }: {
   utilizationPercent: number;
   resetsAt: string | null;
   mood: Expression;
+  stale?: boolean;
 }) {
   const countdown = useCountdown(resetsAt);
   const color = MOOD_COLORS[mood] ?? '#9ca3af';
   return (
-    <Panel
-      percent={utilizationPercent}
-      color={color}
-      label="7d"
-      countdown={countdown}
-    />
+    <div style={{ opacity: stale ? 0.7 : 1, transition: 'opacity 0.3s ease' }}>
+      <Panel
+        percent={utilizationPercent}
+        color={color}
+        label={stale ? '7d ·' : '7d'}
+        countdown={countdown}
+      />
+    </div>
   );
 }
 
 /** Right panel (5-hour) */
-export function FiveHourBar({ fiveHourPercent, fiveHourResetsAt }: {
+export function FiveHourBar({ fiveHourPercent, fiveHourResetsAt, stale }: {
   fiveHourPercent: number;
   fiveHourResetsAt: string | null;
+  stale?: boolean;
 }) {
   const countdown = useCountdown(fiveHourResetsAt);
   const color = fiveHourPercent > 90 ? '#ef4444' : '#60a5fa';
   return (
-    <Panel
-      percent={fiveHourPercent}
-      color={color}
-      label="5h"
-      countdown={countdown}
-    />
+    <div style={{ opacity: stale ? 0.7 : 1, transition: 'opacity 0.3s ease' }}>
+      <Panel
+        percent={fiveHourPercent}
+        color={color}
+        label={stale ? '5h ·' : '5h'}
+        countdown={countdown}
+      />
+    </div>
   );
 }
 
-/** Offline text for no-data state */
-export function OfflineLabel({ locale = 'ko' }: { locale?: Locale }) {
+/** Offline / rate-limited text for no-data state */
+export function OfflineLabel({ locale = 'ko', rateLimited = false }: { locale?: Locale; rateLimited?: boolean }) {
   return (
     <div style={{
       marginTop: 6,
@@ -113,15 +119,16 @@ export function OfflineLabel({ locale = 'ko' }: { locale?: Locale }) {
       textAlign: 'center',
       textShadow: '0 1px 3px rgba(0,0,0,0.8)',
     }}>
-      {t(locale, 'offline')}
+      {rateLimited ? t(locale, 'rate_limited') : t(locale, 'offline')}
     </div>
   );
 }
 
 /** Compact single-line bar for mini mode */
-export function MiniBar({ utilizationPercent, mood }: {
+export function MiniBar({ utilizationPercent, mood, stale }: {
   utilizationPercent: number;
   mood: Expression;
+  stale?: boolean;
 }) {
   const clamped = clamp(utilizationPercent);
   const color = MOOD_COLORS[mood] ?? '#9ca3af';
@@ -135,6 +142,8 @@ export function MiniBar({ utilizationPercent, mood }: {
       padding: '3px 6px',
       backdropFilter: 'blur(6px)',
       border: '1px solid rgba(255, 255, 255, 0.1)',
+      opacity: stale ? 0.75 : 1,
+      transition: 'opacity 0.3s ease',
     }}>
       <div style={{
         width: 36,

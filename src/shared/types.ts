@@ -12,8 +12,9 @@ export interface MamaState {
   message: string;
   resetsAt: string | null;
   fiveHourResetsAt: string | null;
-  dataSource: 'api' | 'cache' | 'none';
+  dataSource: 'api' | 'jsonl' | 'none';
   stale: boolean;
+  rateLimited: boolean;
   error: string | null;
 }
 

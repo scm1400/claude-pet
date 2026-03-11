@@ -27,8 +27,9 @@ export interface UsageData {
   fiveHourUtilization: number | null;
   resetsAt: string | null;
   fiveHourResetsAt: string | null;
-  dataSource: 'api' | 'cache' | 'none';
+  dataSource: 'api' | 'jsonl' | 'none';
   stale: boolean;
+  rateLimited: boolean;
   error: string | null;
 }
 
@@ -37,22 +38,266 @@ interface UsageApiResponse {
   seven_day?: { utilization?: number; resets_at?: string };
 }
 
-interface DailyModelTokenEntry {
-  date: string;
-  tokensByModel: Record<string, number>;
+/** Token counts extracted from a single JSONL assistant entry */
+interface SessionTokenUsage {
+  input_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
+  output_tokens: number;
+  timestamp: string; // ISO 8601
 }
 
-interface StatsCacheJson {
-  dailyModelTokens?: DailyModelTokenEntry[];
+/** Aggregated token totals for a time window */
+interface WindowTokenTotals {
+  input: number;
+  cacheCreation: number;
+  cacheRead: number;
+  output: number;
+  total: number;
+  entryCount: number;
 }
-
-// Rough estimate: treat 1 million tokens/day as 100% utilization for cache fallback.
-const DAILY_TOKEN_BASELINE = 1_000_000;
 
 const CREDENTIALS_PATH = path.join(os.homedir(), '.claude', '.credentials.json');
-const STATS_CACHE_PATH = path.join(os.homedir(), '.claude', 'stats-cache.json');
+const CLAUDE_PROJECTS_DIR = path.join(os.homedir(), '.claude', 'projects');
+
+// ---------------------------------------------------------------------------
+// Dynamic calibration: learn tokens-per-percent from successful API responses
+// ---------------------------------------------------------------------------
+interface CalibrationData {
+  fiveHour: { tokensPerPercent: number; updatedAt: string } | null;
+  sevenDay: { tokensPerPercent: number; updatedAt: string } | null;
+}
+
+const CALIBRATION_PATH = path.join(os.homedir(), '.claude', 'mama-calibration.json');
+const CALIBRATION_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+function loadCalibration(): CalibrationData {
+  try {
+    const raw = fs.readFileSync(CALIBRATION_PATH, 'utf8');
+    return JSON.parse(raw);
+  } catch {
+    return { fiveHour: null, sevenDay: null };
+  }
+}
+
+function saveCalibration(data: CalibrationData): void {
+  try {
+    fs.writeFileSync(CALIBRATION_PATH, JSON.stringify(data, null, 2), 'utf8');
+  } catch (err) {
+    console.log('[usage-tracker] Failed to save calibration:', err instanceof Error ? err.message : err);
+  }
+}
 
 const POLL_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
+
+/**
+ * Called after a successful API response to learn the relationship between
+ * JSONL token counts and API utilization percentages.
+ */
+function updateCalibration(apiData: UsageData): void {
+  if (apiData.dataSource !== 'api') return;
+
+  const now = Date.now();
+  const fiveHoursAgo = now - 5 * 60 * 60 * 1000;
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+  const files = collectJsonlFiles();
+  if (files.length === 0) return;
+
+  const fiveHourEntries: SessionTokenUsage[] = [];
+  const sevenDayEntries: SessionTokenUsage[] = [];
+
+  for (const file of files) {
+    try {
+      const stat = fs.statSync(file);
+      if (stat.mtimeMs < sevenDaysAgo) continue;
+    } catch { continue; }
+
+    const entries = parseJsonlTokenUsage(file, sevenDaysAgo);
+    for (const entry of entries) {
+      const entryTime = new Date(entry.timestamp).getTime();
+      sevenDayEntries.push(entry);
+      if (entryTime >= fiveHoursAgo) {
+        fiveHourEntries.push(entry);
+      }
+    }
+  }
+
+  const cal = loadCalibration();
+  const nowIso = new Date().toISOString();
+
+  // Only calibrate if API returned meaningful utilization (> 1%) and we have tokens
+  if (apiData.fiveHourUtilization && apiData.fiveHourUtilization > 1) {
+    const tokens = aggregateTokens(fiveHourEntries).total;
+    if (tokens > 0) {
+      cal.fiveHour = { tokensPerPercent: tokens / apiData.fiveHourUtilization, updatedAt: nowIso };
+    }
+  }
+  if (apiData.weeklyUtilization && apiData.weeklyUtilization > 1) {
+    const tokens = aggregateTokens(sevenDayEntries).total;
+    if (tokens > 0) {
+      cal.sevenDay = { tokensPerPercent: tokens / apiData.weeklyUtilization, updatedAt: nowIso };
+    }
+  }
+
+  saveCalibration(cal);
+  console.log(`[usage-tracker] Calibration updated: 5h=${cal.fiveHour?.tokensPerPercent?.toFixed(0) ?? 'n/a'} tok/%, 7d=${cal.sevenDay?.tokensPerPercent?.toFixed(0) ?? 'n/a'} tok/%`);
+}
+
+// ---------------------------------------------------------------------------
+// JSONL Session Parser — extract token usage from ~/.claude/projects/*/*.jsonl
+// ---------------------------------------------------------------------------
+
+function collectJsonlFiles(): string[] {
+  try {
+    if (!fs.existsSync(CLAUDE_PROJECTS_DIR)) return [];
+    const projectDirs = fs.readdirSync(CLAUDE_PROJECTS_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => path.join(CLAUDE_PROJECTS_DIR, d.name));
+
+    const files: string[] = [];
+    for (const dir of projectDirs) {
+      try {
+        const entries = fs.readdirSync(dir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isFile() && entry.name.endsWith('.jsonl')) {
+            files.push(path.join(dir, entry.name));
+          }
+        }
+      } catch { /* skip unreadable dirs */ }
+    }
+    return files;
+  } catch {
+    return [];
+  }
+}
+
+function parseJsonlTokenUsage(filePath: string, sinceMs: number): SessionTokenUsage[] {
+  const results: SessionTokenUsage[] = [];
+  try {
+    const content = fs.readFileSync(filePath, 'utf8');
+    const lines = content.split('\n');
+    for (const line of lines) {
+      if (!line.trim()) continue;
+      try {
+        const entry = JSON.parse(line);
+        if (entry.type !== 'assistant' || !entry.message?.usage) continue;
+        const ts = entry.timestamp ?? entry.message?.timestamp;
+        if (!ts) continue;
+        const entryTime = new Date(ts).getTime();
+        if (isNaN(entryTime) || entryTime < sinceMs) continue;
+
+        const usage = entry.message.usage;
+        results.push({
+          input_tokens: usage.input_tokens ?? 0,
+          cache_creation_input_tokens: usage.cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: usage.cache_read_input_tokens ?? 0,
+          output_tokens: usage.output_tokens ?? 0,
+          timestamp: ts,
+        });
+      } catch { /* skip malformed lines */ }
+    }
+  } catch { /* skip unreadable files */ }
+  return results;
+}
+
+function aggregateTokens(entries: SessionTokenUsage[]): WindowTokenTotals {
+  let input = 0, cacheCreation = 0, cacheRead = 0, output = 0;
+  for (const e of entries) {
+    input += e.input_tokens;
+    cacheCreation += e.cache_creation_input_tokens;
+    cacheRead += e.cache_read_input_tokens;
+    output += e.output_tokens;
+  }
+  // Rate limit utilization is based on compute cost, not raw token count.
+  // cache_read tokens are ~10x cheaper, cache_creation ~25% cheaper than input.
+  // Use weighted total: input + output fully, cache_creation at 0.25, cache_read at 0.1
+  const weightedTotal = input + output
+    + Math.round(cacheCreation * 0.25)
+    + Math.round(cacheRead * 0.1);
+  return {
+    input, cacheCreation, cacheRead, output,
+    total: weightedTotal,
+    entryCount: entries.length,
+  };
+}
+
+function estimateUsageFromJsonl(): UsageData {
+  const now = Date.now();
+  const fiveHoursAgo = now - 5 * 60 * 60 * 1000;
+  const sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;
+
+  const files = collectJsonlFiles();
+  if (files.length === 0) {
+    console.log('[usage-tracker] JSONL fallback: no session files found');
+    return noData('Rate limited', true);
+  }
+
+  const fiveHourEntries: SessionTokenUsage[] = [];
+  const sevenDayEntries: SessionTokenUsage[] = [];
+
+  for (const file of files) {
+    // Quick filter: skip files older than 7 days by mtime
+    try {
+      const stat = fs.statSync(file);
+      if (stat.mtimeMs < sevenDaysAgo) continue;
+    } catch { continue; }
+
+    const entries = parseJsonlTokenUsage(file, sevenDaysAgo);
+    for (const entry of entries) {
+      const entryTime = new Date(entry.timestamp).getTime();
+      sevenDayEntries.push(entry);
+      if (entryTime >= fiveHoursAgo) {
+        fiveHourEntries.push(entry);
+      }
+    }
+  }
+
+  if (sevenDayEntries.length === 0) {
+    console.log('[usage-tracker] JSONL fallback: no entries in 7-day window');
+    return noData('Rate limited', true);
+  }
+
+  const fiveHourTotals = aggregateTokens(fiveHourEntries);
+  const sevenDayTotals = aggregateTokens(sevenDayEntries);
+
+  const cal = loadCalibration();
+  const calAge5h = cal.fiveHour ? Date.now() - new Date(cal.fiveHour.updatedAt).getTime() : Infinity;
+  const calAge7d = cal.sevenDay ? Date.now() - new Date(cal.sevenDay.updatedAt).getTime() : Infinity;
+
+  // Use calibration if available and fresh (< 24h), otherwise fall back to cache
+  const has5hCal = cal.fiveHour && calAge5h < CALIBRATION_MAX_AGE_MS;
+  const has7dCal = cal.sevenDay && calAge7d < CALIBRATION_MAX_AGE_MS;
+
+  if (!has5hCal && !has7dCal) {
+    console.log('[usage-tracker] JSONL fallback: no fresh calibration data');
+    return noData('Rate limited', true);
+  }
+
+  const fiveHourUtil = has5hCal
+    ? Math.min(100, fiveHourTotals.total / cal.fiveHour!.tokensPerPercent)
+    : null;
+  const weeklyUtil = has7dCal
+    ? Math.min(100, sevenDayTotals.total / cal.sevenDay!.tokensPerPercent)
+    : null;
+
+  console.log(`[usage-tracker] JSONL fallback: 5h=${fiveHourTotals.total} tokens (${fiveHourUtil?.toFixed(1) ?? 'n/a'}%), 7d=${sevenDayTotals.total} tokens (${weeklyUtil?.toFixed(1) ?? 'n/a'}%)`);
+
+  return {
+    weeklyUtilization: weeklyUtil,
+    fiveHourUtilization: fiveHourUtil,
+    resetsAt: null,
+    fiveHourResetsAt: null,
+    dataSource: 'jsonl',
+    stale: false,
+    rateLimited: true,
+    error: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Credential reading
+// ---------------------------------------------------------------------------
 
 function readAccessTokenFromFile(): string | null {
   try {
@@ -194,45 +439,16 @@ function httpsGet(url: string, token: string): Promise<{ status: number; body: s
   });
 }
 
-function fallbackToCache(): UsageData {
-  try {
-    const raw = fs.readFileSync(STATS_CACHE_PATH, 'utf8');
-    const cache: StatsCacheJson = JSON.parse(raw);
-    const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-
-    // Try today's entry first, then fall back to the most recent entry
-    const entries = cache.dailyModelTokens ?? [];
-    const todayEntry = entries.find((e) => e.date === today);
-    const bestEntry = todayEntry ?? entries.sort((a, b) => b.date.localeCompare(a.date))[0];
-
-    if (!bestEntry) {
-      return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'cache', stale: true, error: 'No cache data available' };
-    }
-
-    const totalTokens = Object.values(bestEntry.tokensByModel).reduce((a, b) => a + b, 0);
-    const utilization = Math.min(100, (totalTokens / DAILY_TOKEN_BASELINE) * 100);
-    const isStale = !todayEntry; // stale if we had to use an older entry
-
-    console.log(`[usage-tracker] cache fallback: date=${bestEntry.date}, tokens=${totalTokens}, util=${utilization.toFixed(1)}%, stale=${isStale}`);
-
-    return {
-      weeklyUtilization: utilization,
-      fiveHourUtilization: null,
-      resetsAt: null, fiveHourResetsAt: null,
-      dataSource: 'cache',
-      stale: isStale,
-      error: null,
-    };
-  } catch {
-    return {
-      weeklyUtilization: null,
-      fiveHourUtilization: null,
-      resetsAt: null, fiveHourResetsAt: null,
-      dataSource: 'none',
-      stale: true,
-      error: 'Cache unavailable',
-    };
-  }
+function noData(error: string, rateLimited = false): UsageData {
+  return {
+    weeklyUtilization: null,
+    fiveHourUtilization: null,
+    resetsAt: null, fiveHourResetsAt: null,
+    dataSource: 'none',
+    stale: true,
+    rateLimited,
+    error,
+  };
 }
 
 async function fetchUsage(token: string): Promise<UsageData> {
@@ -241,39 +457,57 @@ async function fetchUsage(token: string): Promise<UsageData> {
 
   if (result.status === 200) {
     const json: UsageApiResponse = JSON.parse(result.body);
-    return {
+    const apiData: UsageData = {
       weeklyUtilization: json.seven_day?.utilization ?? null,
       fiveHourUtilization: json.five_hour?.utilization ?? null,
       resetsAt: json.seven_day?.resets_at ?? null,
       fiveHourResetsAt: json.five_hour?.resets_at ?? null,
       dataSource: 'api',
       stale: false,
+      rateLimited: false,
       error: null,
     };
+    // Learn token-to-percent ratio for future JSONL fallback
+    updateCalibration(apiData);
+    return apiData;
   }
 
   if (result.status === 401) {
-    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, error: '401' };
+    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, rateLimited: false, error: '401' };
   }
 
   if (result.status === 429) {
-    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, error: '429' };
+    return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, rateLimited: true, error: '429' };
   }
 
-  return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, error: `HTTP ${result.status}` };
+  return { weeklyUtilization: null, fiveHourUtilization: null, resetsAt: null, fiveHourResetsAt: null, dataSource: 'none', stale: true, rateLimited: false, error: `HTTP ${result.status}` };
 }
 
 async function fetchOnce(token: string): Promise<UsageData> {
   try {
     const data = await fetchUsage(token);
     if (data.error === null) return data;
-    // Any API error → immediate cache fallback (no slow retries blocking UI)
-    console.log(`[usage-tracker] API error (${data.error}), falling back to cache`);
-    return fallbackToCache();
+
+    // 429 (rate limited) → use JSONL session files for better accuracy
+    if (data.rateLimited) {
+      console.log('[usage-tracker] API 429, falling back to JSONL session parser');
+      return estimateUsageFromJsonl();
+    }
+
+    // Other API errors → cache fallback
+    console.log(`[usage-tracker] API error (${data.error}), no data available`);
+    return noData('No data available');
   } catch (err) {
-    console.log(`[usage-tracker] Network error: ${err instanceof Error ? err.message : err}, falling back to cache`);
-    return fallbackToCache();
+    console.log(`[usage-tracker] Network error: ${err instanceof Error ? err.message : err}, no data available`);
+    return noData('No data available');
   }
+}
+
+const MAX_BACKOFF_ERR_MS = 15 * 60 * 1000; // 15 min cap for other errors
+
+function addJitter(baseMs: number): number {
+  const jitter = baseMs * 0.15;
+  return baseMs + (Math.random() * 2 - 1) * jitter;
 }
 
 type UpdateCallback = (data: UsageData) => void;
@@ -286,9 +520,11 @@ export class UsageTracker {
     resetsAt: null, fiveHourResetsAt: null,
     dataSource: 'none',
     stale: false,
+    rateLimited: false,
     error: null,
   };
-  private timer: ReturnType<typeof setInterval> | null = null;
+  private timer: ReturnType<typeof setTimeout> | null = null;
+  private backoffLevel = 0;
 
   onUpdate(callback: UpdateCallback): void {
     this.callbacks.push(callback);
@@ -301,14 +537,33 @@ export class UsageTracker {
   start(): void {
     // Fetch immediately on start
     void this.poll();
-    this.timer = setInterval(() => { void this.poll(); }, POLL_INTERVAL_MS);
   }
 
   stop(): void {
     if (this.timer !== null) {
-      clearInterval(this.timer);
+      clearTimeout(this.timer);
       this.timer = null;
     }
+  }
+
+  private scheduleNext(rateLimited: boolean, hasError: boolean): void {
+    let interval: number;
+    if (rateLimited) {
+      // Retry quickly (10s) to get a successful API response for calibration
+      interval = 10_000;
+      console.log(`[usage-tracker] Rate limited. Retrying in 10s`);
+    } else if (hasError) {
+      this.backoffLevel = Math.min(this.backoffLevel + 1, 2);
+      const cap = MAX_BACKOFF_ERR_MS;
+      interval = Math.min(POLL_INTERVAL_MS * Math.pow(2, this.backoffLevel), cap);
+      console.log(`[usage-tracker] Error. Backoff level ${this.backoffLevel}, next poll in ${Math.round(interval / 1000)}s`);
+    } else {
+      this.backoffLevel = 0;
+      interval = POLL_INTERVAL_MS;
+    }
+
+    const jittered = addJitter(interval);
+    this.timer = setTimeout(() => { void this.poll(); }, jittered);
   }
 
   private async poll(): Promise<void> {
@@ -317,6 +572,7 @@ export class UsageTracker {
     for (const cb of this.callbacks) {
       cb(data);
     }
+    this.scheduleNext(data.rateLimited, data.error !== null && data.error !== 'NO_CREDENTIALS');
   }
 
   private async doPoll(): Promise<UsageData> {
@@ -329,6 +585,7 @@ export class UsageTracker {
         resetsAt: null, fiveHourResetsAt: null,
         dataSource: 'none',
         stale: false,
+        rateLimited: false,
         error: 'NO_CREDENTIALS',
       };
     }
@@ -345,12 +602,13 @@ export class UsageTracker {
           resetsAt: null, fiveHourResetsAt: null,
           dataSource: 'none',
           stale: false,
+          rateLimited: false,
           error: 'NO_CREDENTIALS',
         };
       }
       result = await fetchOnce(token);
       if (result.error === '401') {
-        return fallbackToCache();
+        return noData('No data available');
       }
     }
 

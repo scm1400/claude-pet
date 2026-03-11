@@ -7,8 +7,9 @@ export interface UsageInput {
   error: string | null;
   resetsAt?: string | null;
   fiveHourResetsAt?: string | null;
-  dataSource?: 'api' | 'cache' | 'none';
+  dataSource?: 'api' | 'jsonl' | 'none';
   stale?: boolean;
+  rateLimited?: boolean;
   locale?: Locale;
 }
 
@@ -25,6 +26,7 @@ export function computeMood(input: UsageInput): MamaState {
     fiveHourResetsAt = null,
     dataSource = 'none',
     stale = false,
+    rateLimited = false,
     locale = 'ko',
   } = input;
 
@@ -39,6 +41,44 @@ export function computeMood(input: UsageInput): MamaState {
       fiveHourResetsAt: null,
       dataSource: 'none',
       stale: false,
+      rateLimited: false,
+      error,
+    };
+  }
+
+  // Rate limited — if we have utilization data (e.g. from JSONL), show normal mood
+  // with rateLimited message; if no data, show confused
+  if (rateLimited) {
+    if (weeklyUtilization !== null) {
+      let rlMood: MamaState['mood'];
+      if (weeklyUtilization < 15) rlMood = 'angry';
+      else if (weeklyUtilization < 50) rlMood = 'worried';
+      else if (weeklyUtilization < 85) rlMood = 'happy';
+      else rlMood = 'proud';
+
+      return {
+        mood: rlMood,
+        utilizationPercent: weeklyUtilization,
+        fiveHourPercent: fiveHourUtilization,
+        message: getMessage('rateLimited', locale),
+        resetsAt,
+        fiveHourResetsAt,
+        dataSource,
+        stale,
+        rateLimited: true,
+        error,
+      };
+    }
+    return {
+      mood: 'confused',
+      utilizationPercent: 0,
+      fiveHourPercent: fiveHourUtilization,
+      message: getMessage('rateLimited', locale),
+      resetsAt,
+      fiveHourResetsAt,
+      dataSource,
+      stale,
+      rateLimited: true,
       error,
     };
   }
@@ -54,6 +94,7 @@ export function computeMood(input: UsageInput): MamaState {
       fiveHourResetsAt,
       dataSource,
       stale,
+      rateLimited: false,
       error,
     };
   }
@@ -87,6 +128,7 @@ export function computeMood(input: UsageInput): MamaState {
     fiveHourResetsAt,
     dataSource,
     stale,
+    rateLimited: false,
     error: null,
   };
 }

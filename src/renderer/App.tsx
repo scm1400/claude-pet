@@ -126,6 +126,7 @@ function MainView() {
   const fiveHourPercent = mamaState?.fiveHourPercent ?? null;
   const fiveHourResetsAt = mamaState?.fiveHourResetsAt ?? null;
   const dataSource = mamaState?.dataSource ?? 'none';
+  const rateLimited = mamaState?.rateLimited ?? false;
 
   // Show speech bubble on message rotation (independent of bar state)
   useEffect(() => {
@@ -189,18 +190,19 @@ function MainView() {
     </div>
   );
 
+  const isStale = false;
   const usageBars = dataSource === 'none' ? (
-    <OfflineLabel locale={locale} />
+    <OfflineLabel locale={locale} rateLimited={rateLimited} />
   ) : isExpanded ? (
     <div ref={barsRef} onClick={onToggle} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 6, cursor: 'pointer' }}>
-      <WeeklyBar utilizationPercent={utilizationPercent} resetsAt={mamaState?.resetsAt ?? null} mood={mood} />
+      <WeeklyBar utilizationPercent={utilizationPercent} resetsAt={mamaState?.resetsAt ?? null} mood={mood} stale={isStale} />
       {fiveHourPercent != null && (
-        <FiveHourBar fiveHourPercent={fiveHourPercent} fiveHourResetsAt={fiveHourResetsAt} />
+        <FiveHourBar fiveHourPercent={fiveHourPercent} fiveHourResetsAt={fiveHourResetsAt} stale={isStale} />
       )}
     </div>
   ) : (
     <div ref={barsRef} onClick={onToggle} style={{ cursor: 'pointer' }}>
-      <MiniBar utilizationPercent={utilizationPercent} mood={mood} />
+      <MiniBar utilizationPercent={utilizationPercent} mood={mood} stale={isStale} />
     </div>
   );
 

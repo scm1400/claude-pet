@@ -39,7 +39,7 @@ Claude Mama is a tiny desktop widget that monitors your [Claude Code](https://do
 
 ## Features
 
-- **Real-time usage tracking** — Pulls 7-day and 5-hour utilization from the Anthropic OAuth API
+- **Real-time usage tracking** — Pulls 7-day and 5-hour utilization from the Anthropic OAuth API, with smart JSONL session fallback when rate limited
 - **Pixel art character** — A pixel-art mama with curler hair and 6 mood expressions (angry, worried, happy, proud, confused, sleeping)
 - **Guilt-powered messages** — Randomized mom-style messages that rotate every 2 minutes
 - **5-hour burnout warning** — "Take a break~ You're almost at the limit!" (she cares, in her own way)
@@ -94,21 +94,24 @@ Grab the latest installer from [Releases](https://github.com/scm1400/claude-mama
 ┌─────────────────┐     ┌──────────────┐     ┌─────────────┐
 │ Anthropic OAuth │────>│ Usage Tracker │───>│ Mood Engine │
 │ Usage API       │     │ (5min poll)   │    │             │
-└─────────────────┘     └──────────────┘     └──────┬──────┘
-                                                    │
-        ┌───────────────────────────────────────────┘
-        │
-        v
-┌──────────────┐     ┌──────────────┐     ┌──────────────┐
-│ Pixel Art    │     │ Speech       │     │ Usage Bar    │
-│ Character    │     │ Bubble       │     │ Indicator    │
-└──────────────┘     └──────────────┘     └──────────────┘
+└─────────────────┘     └──────┬───────┘     └──────┬──────┘
+                               │                     │
+                        ┌──────┴───────┐    ┌───────┘
+                        │ JSONL Session│    │
+                        │ Parser (429) │    v
+                        └──────────────┘  ┌──────────────┐
+                                          │ Pixel Art    │
+┌──────────────┐     ┌──────────────┐     │ Character    │
+│ Speech       │     │ Usage Bar    │     └──────────────┘
+│ Bubble       │     │ Indicator    │
+└──────────────┘     └──────────────┘
 ```
 
-1. **Polls** the Anthropic usage API every 5 minutes (falls back to local `stats-cache.json`)
-2. **Computes mood** based on weekly utilization thresholds
-3. **Renders** a pixel-art mama character with mood-appropriate expression and message
-4. **Nags you** until you use your tokens like a responsible adult
+1. **Polls** the Anthropic usage API every 5 minutes
+2. **Falls back to JSONL session parsing** when rate limited (429) — scans `~/.claude/projects/` session files to estimate usage with dynamic calibration
+3. **Computes mood** based on weekly utilization thresholds
+4. **Renders** a pixel-art mama character with mood-appropriate expression and message
+5. **Nags you** until you use your tokens like a responsible adult
 
 ### Mood Thresholds
 
@@ -119,8 +122,11 @@ Grab the latest installer from [Releases](https://github.com/scm1400/claude-mama
 | 50–84% | 😊 Happy | "Now that's what I like~" |
 | 85–100% | 🥹 Proud | "Perfect! I'm tearing up..." |
 | 5hr > 90% | ⚠️ Warning | "Take a break~ 5-hour limit almost reached!" |
+| Rate limited | 😵 Confused | Uses local session data, or "Collecting data..." while calibrating |
 | API error | 😵 Confused | "Something went wrong..." |
 | No login | 😴 Sleeping | "Log in first!" |
+
+> **Note:** The Claude Code usage API (`api/oauth/usage`) has strict rate limits. When rate limited (429), Claude Mama parses local session JSONL files (`~/.claude/projects/`) to estimate usage. It learns the token-to-percent ratio from successful API responses (dynamic calibration), so estimates improve over time. While waiting for the first successful calibration, mama shows "Collecting data..." and retries every 10 seconds.
 
 ## Development
 
@@ -142,36 +148,6 @@ npm run build:win
 
 # Build macOS installer (requires macOS)
 npm run build:mac
-```
-
-### Project Structure
-
-```
-src/
-├── core/                  # No Electron dependencies
-│   ├── mood-engine.ts     # Pure function: usage data → mood state
-│   ├── messages.ts        # Localized mama message pools
-│   ├── usage-tracker.ts   # API polling + cache fallback
-│   ├── quote-registry.ts  # Central registry of all 86 collectible quotes
-│   ├── quote-triggers.ts  # Trigger conditions for rare/legendary/secret quotes
-│   └── quote-collection.ts # Collection manager (unlock tracking)
-├── main/                  # Electron main process
-│   ├── main.ts            # App entry, window creation
-│   ├── ipc-handlers.ts    # Settings IPC + position management
-│   ├── settings-window.ts # Settings window factory
-│   ├── share-card.ts      # Offscreen PNG card generation
-│   ├── tray.ts            # System tray setup
-│   ├── auto-launch.ts     # OS auto-start registration
-│   └── auto-updater.ts    # GitHub Releases auto-update
-├── renderer/              # React UI
-│   ├── components/        # Character, SpeechBubble, UsageIndicator
-│   ├── pages/
-│   │   ├── Settings.tsx   # Settings panel with tab navigation
-│   │   └── Collection.tsx # Quote collection (dogam) viewer
-│   └── hooks/             # useMamaState hook
-└── shared/                # Shared types & i18n
-    ├── types.ts
-    └── i18n.ts
 ```
 
 ## FAQ
