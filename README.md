@@ -74,19 +74,35 @@ Mama has 86 unique quotes spread across 4 rarity tiers:
 
 ## Installation
 
-### Download
-
-Grab the latest installer from [Releases](https://github.com/scm1400/claude-mama/releases):
-
-| Platform | File |
-|----------|------|
-| Windows | `Claude Mama Setup x.x.x.exe` |
-| macOS | `Claude Mama-x.x.x.dmg` |
-
 ### Prerequisites
 
-- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) must be installed and logged in
+- [Claude Code](https://docs.anthropic.com/en/docs/claude-code/overview) must be installed and logged in (OAuth)
 - That's it. Mom doesn't ask for much.
+
+### Download
+
+Grab the latest installer from [**Releases**](https://github.com/scm1400/claude-mama/releases):
+
+| Platform | File | Arch |
+|----------|------|------|
+| Windows | `Claude Mama Setup x.x.x.exe` | x64 |
+| macOS | `Claude Mama-x.x.x.dmg` | Universal (Intel + Apple Silicon) |
+
+> **⚠️ Not code-signed:** Claude Mama is not code-signed yet, so your OS will show a security warning on first install.
+> - **Windows:** SmartScreen will say "Windows protected your PC." Click **More info** → **Run anyway**.
+> - **macOS:** You'll see "cannot be opened because the developer cannot be verified." Go to **System Settings** → **Privacy & Security** → **Open Anyway**.
+
+### First Launch
+
+1. Make sure Claude Code is installed and logged in (`claude` in terminal)
+2. Claude Mama will automatically detect your API usage via OAuth
+3. If rate-limited (429), it falls back to local JSONL session parsing — no extra config needed
+4. Mama starts polling every 5 minutes. Just let her do her thing.
+
+### Auto-Start & Auto-Update
+
+- **Auto-start:** Enabled by default. Claude Mama starts with your OS. Toggle in Settings if you dare.
+- **Auto-update:** Updates are downloaded automatically from GitHub Releases. When a new version is ready, mama will ask you to restart.
 
 ## How It Works
 
@@ -95,7 +111,7 @@ Grab the latest installer from [Releases](https://github.com/scm1400/claude-mama
 │ Anthropic OAuth │────>│ Usage Tracker │───>│ Mood Engine │
 │ Usage API       │     │ (5min poll)   │    │             │
 └─────────────────┘     └──────┬───────┘     └──────┬──────┘
-                               │                     │
+                               │                    │
                         ┌──────┴───────┐    ┌───────┘
                         │ JSONL Session│    │
                         │ Parser (429) │    v
