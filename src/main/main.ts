@@ -279,10 +279,16 @@ app.whenReady().then(async () => {
   // Check for updates
   initAutoUpdater();
 
-  // Start polling after window is ready to receive messages
-  win.webContents.once('did-finish-load', () => {
+  // Start polling — use did-finish-load when possible, but fall back to a
+  // timeout so the tracker still starts even if the renderer fails to load.
+  let trackerStarted = false;
+  const startTracker = () => {
+    if (trackerStarted) return;
+    trackerStarted = true;
     usageTracker.start();
-  });
+  };
+  win.webContents.once('did-finish-load', startTracker);
+  setTimeout(startTracker, 5000);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

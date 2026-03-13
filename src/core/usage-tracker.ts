@@ -315,11 +315,43 @@ const KEYCHAIN_SERVICE = 'Claude Code-credentials';
 let keychainCache: { token: string; readAt: number } | null = null;
 const KEYCHAIN_CACHE_TTL_MS = 4 * 60 * 1000; // cache for 4 min (poll is every 5 min)
 
+function parseKeychainToken(raw: string): string | null {
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed?.claudeAiOauth?.accessToken ?? null;
+  } catch {
+    return null;
+  }
+}
+
 function readAccessTokenFromKeychain(): string | null {
   // Return cached value if fresh enough
   if (keychainCache && Date.now() - keychainCache.readAt < KEYCHAIN_CACHE_TTL_MS) {
     return keychainCache.token;
   }
+
+  // Strategy 1: Direct security command
+  const token = readKeychainDirect();
+  if (token) {
+    keychainCache = { token, readAt: Date.now() };
+    return token;
+  }
+
+  // Strategy 2: osascript wrapper — runs the security command via AppleScript,
+  // which executes in a user-interactive context and can show the macOS Keychain
+  // access dialog that packaged Electron apps often fail to trigger.
+  const tokenViaOsascript = readKeychainViaOsascript();
+  if (tokenViaOsascript) {
+    keychainCache = { token: tokenViaOsascript, readAt: Date.now() };
+    // Persist to credentials file so future reads don't need keychain
+    persistCredentialsFile(tokenViaOsascript);
+    return tokenViaOsascript;
+  }
+
+  return null;
+}
+
+function readKeychainDirect(): string | null {
   try {
     if (!fs.existsSync(SECURITY_BIN)) {
       console.log('[usage-tracker] security binary not found at', SECURITY_BIN);
@@ -327,25 +359,56 @@ function readAccessTokenFromKeychain(): string | null {
     }
     const raw = execSync(
       `${SECURITY_BIN} find-generic-password -s "${KEYCHAIN_SERVICE}" -w`,
-      { encoding: 'utf8', timeout: 5000, stdio: ['pipe', 'pipe', 'pipe'] },
+      { encoding: 'utf8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] },
     ).trim();
-    const parsed = JSON.parse(raw);
-    const token = parsed?.claudeAiOauth?.accessToken ?? null;
-    if (token) {
-      keychainCache = { token, readAt: Date.now() };
-    }
-    return token;
+    return parseKeychainToken(raw);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    // Distinguish between "not found" vs "keychain locked" vs other errors
     if (msg.includes('could not be found')) {
       console.log('[usage-tracker] Keychain: no Claude Code credentials entry found');
     } else if (msg.includes('User interaction is not allowed') || msg.includes('errSecInteractionNotAllowed')) {
-      console.log('[usage-tracker] Keychain: locked or interaction not allowed (screen locked?)');
+      console.log('[usage-tracker] Keychain: interaction not allowed, will try osascript fallback');
     } else {
       console.log('[usage-tracker] Keychain read failed:', msg.slice(0, 150));
     }
     return null;
+  }
+}
+
+const OSASCRIPT_BIN = '/usr/bin/osascript';
+
+function readKeychainViaOsascript(): string | null {
+  try {
+    if (!fs.existsSync(OSASCRIPT_BIN)) return null;
+    const raw = execSync(
+      `${OSASCRIPT_BIN} -e 'do shell script "${SECURITY_BIN} find-generic-password -s \\\\"${KEYCHAIN_SERVICE}\\\\" -w"'`,
+      { encoding: 'utf8', timeout: 30000, stdio: ['pipe', 'pipe', 'pipe'] },
+    ).trim();
+    const token = parseKeychainToken(raw);
+    if (token) {
+      console.log('[usage-tracker] Token source: macOS Keychain (via osascript)');
+    }
+    return token;
+  } catch (err) {
+    const msg = err instanceof Error ? err.message : String(err);
+    console.log('[usage-tracker] Keychain osascript fallback failed:', msg.slice(0, 150));
+    return null;
+  }
+}
+
+/**
+ * Persist the raw keychain JSON to ~/.claude/.credentials.json so that
+ * subsequent reads can use the faster file-based path and avoid keychain
+ * permission issues entirely.
+ */
+function persistCredentialsFile(accessToken: string): void {
+  try {
+    fs.mkdirSync(path.dirname(CREDENTIALS_PATH), { recursive: true });
+    const data = JSON.stringify({ claudeAiOauth: { accessToken } }, null, 2);
+    fs.writeFileSync(CREDENTIALS_PATH, data, { encoding: 'utf8', mode: 0o600 });
+    console.log('[usage-tracker] Persisted credentials to file for future reads');
+  } catch (err) {
+    console.log('[usage-tracker] Failed to persist credentials file:', err instanceof Error ? err.message : err);
   }
 }
 
