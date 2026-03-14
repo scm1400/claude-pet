@@ -17,6 +17,9 @@ const CHANNELS = {
   SHOW_CONTEXT_MENU: 'mama:show-context-menu',
   BADGE_GET: 'mama:badge-get',
   BADGE_UNLOCKED: 'mama:badge-unlocked',
+  UPLOAD_SKIN: 'mama:upload-skin',
+  RESET_SKIN: 'mama:reset-skin',
+  GET_SKIN_CONFIG: 'mama:get-skin-config',
 } as const;
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -80,5 +83,17 @@ contextBridge.exposeInMainWorld('electronAPI', {
     const listener = (_event: Electron.IpcRendererEvent, ids: string[]) => callback(ids);
     ipcRenderer.on(CHANNELS.BADGE_UNLOCKED, listener);
     return () => ipcRenderer.removeListener(CHANNELS.BADGE_UNLOCKED, listener);
+  },
+
+  uploadSkin: (mood?: string): Promise<string | null> => {
+    return ipcRenderer.invoke(CHANNELS.UPLOAD_SKIN, mood) as Promise<string | null>;
+  },
+
+  resetSkin: (): Promise<unknown> => {
+    return ipcRenderer.invoke(CHANNELS.RESET_SKIN);
+  },
+
+  getSkinConfig: (): Promise<unknown> => {
+    return ipcRenderer.invoke(CHANNELS.GET_SKIN_CONFIG);
   },
 });

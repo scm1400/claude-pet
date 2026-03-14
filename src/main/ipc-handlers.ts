@@ -1,12 +1,13 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import Store from 'electron-store';
-import { IPC_CHANNELS, MamaSettings } from '../shared/types';
+import { IPC_CHANNELS, MamaSettings, SkinConfig } from '../shared/types';
 import { showSettingsWindow } from './settings-window';
 import { updateAutoLaunch } from './auto-launch';
 import { QuoteCollectionManager } from '../core/quote-collection';
 import { generateShareCard } from './share-card';
 import { BadgeManager } from '../core/badge-manager';
 import { DEFAULT_LOCALE } from '../shared/i18n';
+import { uploadSkinImage, resetSkin, getSkinConfig, saveSkinConfig } from './skin-manager';
 
 const defaults: MamaSettings = {
   autoStart: true,
@@ -51,6 +52,11 @@ export function registerIpcHandlers(
       mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
     }
 
+    // Save skin config if provided
+    if (settings.skin) {
+      saveSkinConfig(settings.skin as SkinConfig);
+    }
+
     // Re-broadcast state with updated settings (e.g. locale change)
     onSettingsChanged?.();
 
@@ -74,5 +80,19 @@ export function registerIpcHandlers(
   // Badges
   ipcMain.handle(IPC_CHANNELS.BADGE_GET, () => {
     return badgeManager?.getState() ?? null;
+  });
+
+  // Skin
+  ipcMain.handle(IPC_CHANNELS.UPLOAD_SKIN, async (_event, mood?: string) => {
+    return uploadSkinImage(mood);
+  });
+
+  ipcMain.handle(IPC_CHANNELS.RESET_SKIN, () => {
+    resetSkin();
+    return { mode: 'default' };
+  });
+
+  ipcMain.handle(IPC_CHANNELS.GET_SKIN_CONFIG, () => {
+    return getSkinConfig();
   });
 }
