@@ -1,6 +1,6 @@
 {
   "name": "claude-mama",
-  "version": "1.0.3",
+  "version": "1.1.0",
   "description": "Claude API usage monitor desktop widget",
   "main": "dist/main/main/main.js",
   "scripts": {
