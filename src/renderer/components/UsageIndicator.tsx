@@ -51,17 +51,27 @@ function Panel({ percent, color, label, countdown }: {
   countdown: string | null;
 }) {
   const clamped = clamp(percent);
+  const isMaxed = clamped >= 100;
+
   return (
     <div style={styles.panel}>
       <div style={styles.topRow}>
         <div style={styles.label}>{label}</div>
         <div style={styles.percent}>{clamped.toFixed(0)}%</div>
       </div>
-      <div style={styles.track}>
-        <div style={{ ...styles.fill, width: `${clamped}%`, background: color }} />
-      </div>
-      {countdown && (
-        <div style={styles.countdown}>↻ {countdown}</div>
+      {isMaxed && countdown ? (
+        <div style={styles.maxedCountdown}>
+          ↻ {countdown}
+        </div>
+      ) : (
+        <>
+          <div style={styles.track}>
+            <div style={{ ...styles.fill, width: `${clamped}%`, background: color }} />
+          </div>
+          {countdown && (
+            <div style={styles.countdown}>↻ {countdown}</div>
+          )}
+        </>
       )}
     </div>
   );
@@ -125,13 +135,17 @@ export function OfflineLabel({ locale = DEFAULT_LOCALE, rateLimited = false }: {
 }
 
 /** Compact single-line bar for mini mode */
-export function MiniBar({ utilizationPercent, mood, stale }: {
+export function MiniBar({ utilizationPercent, mood, stale, resetsAt }: {
   utilizationPercent: number;
   mood: Expression;
   stale?: boolean;
+  resetsAt?: string | null;
 }) {
   const clamped = clamp(utilizationPercent);
   const color = MOOD_COLORS[mood] ?? '#9ca3af';
+  const countdown = useCountdown(resetsAt ?? null);
+  const isMaxed = clamped >= 100;
+
   return (
     <div style={{
       display: 'flex',
@@ -145,30 +159,44 @@ export function MiniBar({ utilizationPercent, mood, stale }: {
       opacity: stale ? 0.75 : 1,
       transition: 'opacity 0.3s ease',
     }}>
-      <div style={{
-        width: 36,
-        height: 5,
-        background: 'rgba(255, 255, 255, 0.25)',
-        borderRadius: 3,
-        overflow: 'hidden',
-      }}>
-        <div style={{
-          height: '100%',
-          width: `${clamped}%`,
-          background: color,
-          borderRadius: 3,
-          transition: 'width 0.5s ease',
-        }} />
-      </div>
-      <span style={{
-        fontSize: 9,
-        color: '#ffffff',
-        fontFamily: 'system-ui, -apple-system, sans-serif',
-        fontWeight: 700,
-        textShadow: '0 1px 3px rgba(0,0,0,1)',
-      }}>
-        {clamped.toFixed(0)}%
-      </span>
+      {isMaxed && countdown ? (
+        <span style={{
+          fontSize: 9,
+          color: '#fbbf24',
+          fontFamily: 'system-ui, -apple-system, sans-serif',
+          fontWeight: 800,
+          textShadow: '0 0 4px rgba(251, 191, 36, 0.5), 0 1px 3px rgba(0,0,0,1)',
+        }}>
+          ↻ {countdown}
+        </span>
+      ) : (
+        <>
+          <div style={{
+            width: 36,
+            height: 5,
+            background: 'rgba(255, 255, 255, 0.25)',
+            borderRadius: 3,
+            overflow: 'hidden',
+          }}>
+            <div style={{
+              height: '100%',
+              width: `${clamped}%`,
+              background: color,
+              borderRadius: 3,
+              transition: 'width 0.5s ease',
+            }} />
+          </div>
+          <span style={{
+            fontSize: 9,
+            color: '#ffffff',
+            fontFamily: 'system-ui, -apple-system, sans-serif',
+            fontWeight: 700,
+            textShadow: '0 1px 3px rgba(0,0,0,1)',
+          }}>
+            {clamped.toFixed(0)}%
+          </span>
+        </>
+      )}
     </div>
   );
 }
@@ -226,5 +254,15 @@ const styles: Record<string, CSSProperties> = {
     fontWeight: 600,
     textShadow: '0 1px 3px rgba(0,0,0,1)',
     textAlign: 'center',
+  },
+  maxedCountdown: {
+    fontSize: 12,
+    color: '#fbbf24',
+    fontFamily: 'system-ui, -apple-system, sans-serif',
+    fontWeight: 800,
+    textShadow: '0 0 6px rgba(251, 191, 36, 0.5), 0 1px 3px rgba(0,0,0,1)',
+    textAlign: 'center',
+    padding: '2px 0',
+    animation: 'pulse-dot 2s ease-in-out infinite',
   },
 };

@@ -210,7 +210,7 @@ function MainView() {
     </div>
   ) : (
     <div ref={barsRef} onClick={onToggle} style={{ cursor: 'pointer' }}>
-      <MiniBar utilizationPercent={utilizationPercent} mood={mood} stale={isStale} />
+      <MiniBar utilizationPercent={utilizationPercent} mood={mood} stale={isStale} resetsAt={mamaState?.resetsAt} />
     </div>
   );
 
