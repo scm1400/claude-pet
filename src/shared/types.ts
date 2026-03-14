@@ -72,6 +72,32 @@ export interface TriggerContext {
 
 export type ContextTrigger = 'weekend' | 'unusedStreak' | 'spike' | 'resetImminent';
 
+export type BadgeTier = 'bronze' | 'silver' | 'gold';
+
+export interface BadgeEntry {
+  id: string;
+  tier: BadgeTier;
+  name: Record<Locale, string>;
+  description: Record<Locale, string>;
+  icon: string;
+}
+
+export interface UnlockedBadge {
+  id: string;
+  unlockedAt: string;
+}
+
+export interface BadgeState {
+  unlocked: UnlockedBadge[];
+  totalCount: number;
+  byTier: Record<BadgeTier, { unlocked: number; total: number }>;
+}
+
+export interface BadgeTriggerContext extends TriggerContext {
+  proudCount: number;
+  angryCount: number;
+}
+
 /** IPC channel names */
 export const IPC_CHANNELS = {
   MAMA_STATE_UPDATE: 'mama:state-update',
@@ -86,4 +112,6 @@ export const IPC_CHANNELS = {
   SAVE_POSITION: 'mama:save-position',
   MOVE_WINDOW: 'mama:move-window',
   SHOW_CONTEXT_MENU: 'mama:show-context-menu',
+  BADGE_GET: 'mama:badge-get',
+  BADGE_UNLOCKED: 'mama:badge-unlocked',
 } as const;

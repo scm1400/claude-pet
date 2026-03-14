@@ -74,6 +74,11 @@ const UI_STRINGS = {
     tray_check_update: '업데이트 확인',
     update_up_to_date: '최신 버전입니다!',
     always_on_top: '항상 위에 표시',
+    tab_badges: '배지',
+    tier_bronze: '브론즈',
+    tier_silver: '실버',
+    tier_gold: '골드',
+    badge_unlocked: '배지 획득!',
   },
   en: {
     settings_title: 'Claude Mama Settings',
@@ -126,6 +131,11 @@ const UI_STRINGS = {
     tray_check_update: 'Check for Updates',
     update_up_to_date: 'You are up to date!',
     always_on_top: 'Always on top',
+    tab_badges: 'Badges',
+    tier_bronze: 'Bronze',
+    tier_silver: 'Silver',
+    tier_gold: 'Gold',
+    badge_unlocked: 'Badge Unlocked!',
   },
   ja: {
     settings_title: 'Claude Mama 設定',
@@ -178,6 +188,11 @@ const UI_STRINGS = {
     tray_check_update: 'アップデートを確認',
     update_up_to_date: '最新バージョンです！',
     always_on_top: '常に最前面に表示',
+    tab_badges: 'バッジ',
+    tier_bronze: 'ブロンズ',
+    tier_silver: 'シルバー',
+    tier_gold: 'ゴールド',
+    badge_unlocked: 'バッジ獲得！',
   },
   zh: {
     settings_title: 'Claude Mama 设置',
@@ -230,6 +245,11 @@ const UI_STRINGS = {
     tray_check_update: '检查更新',
     update_up_to_date: '已是最新版本！',
     always_on_top: '始终在最前面',
+    tab_badges: '徽章',
+    tier_bronze: '铜牌',
+    tier_silver: '银牌',
+    tier_gold: '金牌',
+    badge_unlocked: '获得徽章！',
   },
 } as const;
 
