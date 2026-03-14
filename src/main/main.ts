@@ -11,11 +11,11 @@ import { BadgeManager } from '../core/badge-manager';
 import { evaluateBadgeTriggers } from '../core/badge-triggers';
 import { createTray } from './tray';
 import { syncAutoLaunch } from './auto-launch';
-import { initAutoUpdater } from './auto-updater';
+import { initAutoUpdater, checkForUpdatesManual } from './auto-updater';
 import { evaluateQuoteTriggers } from '../core/quote-triggers';
 import { QuoteCollectionManager } from '../core/quote-collection';
 import { setShareCardState, generateShareCard } from './share-card';
-import { autoUpdater } from 'electron-updater';
+
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
 
 const isDev = !app.isPackaged;
@@ -290,20 +290,7 @@ app.whenReady().then(async () => {
       },
       {
         label: t(locale, 'tray_check_update'),
-        click: async () => {
-          if (!app.isPackaged) {
-            dialog.showMessageBox({ type: 'info', title: 'Claude Mama', message: 'Auto-update is not available in dev mode.' });
-            return;
-          }
-          try {
-            const result = await autoUpdater.checkForUpdates();
-            if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
-              dialog.showMessageBox({ type: 'info', title: 'Claude Mama', message: t(locale, 'update_up_to_date') });
-            }
-          } catch (err: any) {
-            dialog.showMessageBox({ type: 'error', title: 'Claude Mama', message: `Update check failed: ${err.message}` });
-          }
-        },
+        click: () => { void checkForUpdatesManual(); },
       },
       { type: 'separator' },
       {
