@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { MamaSettings, MamaState, Locale, SkinConfig, SkinMode, MamaMood, MamaErrorExpression } from '../../shared/types';
+import { MamaSettings, MamaState, Locale, SkinConfig, SkinMode, MamaMood, MamaErrorExpression, DailyUtilRecord } from '../../shared/types';
 import { t, LOCALE_LABELS, UIStringKey, DEFAULT_LOCALE } from '../../shared/i18n';
 import Collection from './Collection';
 
@@ -19,6 +19,7 @@ export default function Settings() {
 
   const [skinConfig, setSkinConfig] = useState<SkinConfig>({ mode: 'default' });
   const [showAdvancedSkin, setShowAdvancedSkin] = useState(false);
+  const [dailyHistory, setDailyHistory] = useState<DailyUtilRecord[]>([]);
 
   const locale = settings.locale;
   const i = (key: UIStringKey) => t(locale, key);
@@ -66,6 +67,9 @@ export default function Settings() {
     });
     window.electronAPI.getSkinConfig().then((c) => {
       if (c) setSkinConfig(c as SkinConfig);
+    });
+    window.electronAPI.getDailyHistory().then((h) => {
+      if (h) setDailyHistory(h as DailyUtilRecord[]);
     });
     const unsub = window.electronAPI.onMamaStateUpdate((state) => {
       setMamaState(state as MamaState);
@@ -390,6 +394,63 @@ export default function Settings() {
               <span style={s.statKey}>{i('current_mood')}</span>
               <span style={s.statVal}>{moodKey ? i(moodKey) : '—'}</span>
             </div>
+            {/* Streak Calendar */}
+            {dailyHistory.length > 0 && (
+              <div style={{ marginTop: 12, borderTop: '1px solid #f3f4f6', paddingTop: 10 }}>
+                {/* Streak counter */}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                    {i('streak_label')}
+                  </div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: calcStreak(dailyHistory) >= 7 ? '#f59e0b' : calcStreak(dailyHistory) >= 3 ? '#22c55e' : '#6b7280' }}>
+                    🔥 {calcStreak(dailyHistory)}{i('streak_days')}
+                  </div>
+                </div>
+                {/* Heatmap grid - 30 days, 6 cols x 5 rows, newest at bottom-right */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 3 }}>
+                  {(() => {
+                    // Build 30-day array (pad with empty days if needed)
+                    const today = new Date();
+                    const cells: { date: string; percent: number }[] = [];
+                    for (let i = 29; i >= 0; i--) {
+                      const d = new Date(today);
+                      d.setDate(d.getDate() - i);
+                      const dateStr = d.toISOString().slice(0, 10);
+                      const entry = dailyHistory.find((h) => h.date === dateStr);
+                      cells.push({ date: dateStr, percent: entry?.percent ?? -1 });
+                    }
+                    return cells.map((cell) => (
+                      <div
+                        key={cell.date}
+                        title={`${cell.date}: ${cell.percent >= 0 ? cell.percent.toFixed(0) + '%' : 'N/A'}`}
+                        style={{
+                          width: '100%',
+                          aspectRatio: '1',
+                          borderRadius: 3,
+                          background: cell.percent < 0 ? '#f3f4f6' : getMoodColor(cell.percent),
+                          transition: 'background 0.3s ease',
+                        }}
+                      />
+                    ));
+                  })()}
+                </div>
+                {/* Legend */}
+                <div style={{ display: 'flex', gap: 8, marginTop: 6, justifyContent: 'center' }}>
+                  {[
+                    { color: '#ef4444', label: '😡' },
+                    { color: '#eab308', label: '😟' },
+                    { color: '#22c55e', label: '😊' },
+                    { color: '#f59e0b', label: '🥹' },
+                    { color: '#e5e7eb', label: '—' },
+                  ].map(({ color, label }) => (
+                    <div key={color} style={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                      <div style={{ width: 8, height: 8, borderRadius: 2, background: color }} />
+                      <span style={{ fontSize: 9, color: '#9ca3af' }}>{label}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* API status */}
@@ -418,6 +479,24 @@ export default function Settings() {
       )}
     </div>
   );
+}
+
+function getMoodColor(percent: number): string {
+  if (percent <= 0) return '#e5e7eb';
+  if (percent < 25) return '#ef4444';  // angry
+  if (percent < 60) return '#eab308';  // worried
+  if (percent < 85) return '#22c55e';  // happy
+  return '#f59e0b';                     // proud
+}
+
+function calcStreak(history: DailyUtilRecord[]): number {
+  const sorted = [...history].sort((a, b) => b.date.localeCompare(a.date));
+  let streak = 0;
+  for (const d of sorted) {
+    if (d.percent > 0) streak++;
+    else break;
+  }
+  return streak;
 }
 
 function badge(bg: string, color: string): React.CSSProperties {
