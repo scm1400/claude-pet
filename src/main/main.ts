@@ -119,8 +119,9 @@ function broadcastState(): void {
   const existingIdx = dailyHistory.findIndex((d) => d.date === today);
   if (existingIdx >= 0) {
     dailyHistory[existingIdx].percent = state.utilizationPercent;
+    dailyHistory[existingIdx].mood = state.mood;
   } else {
-    dailyHistory.push({ date: today, percent: state.utilizationPercent });
+    dailyHistory.push({ date: today, percent: state.utilizationPercent, mood: state.mood });
   }
   dailyHistory = dailyHistory.slice(-30); // was -14, increased for badge_streak_30
   (getStore() as any).set('dailyUtilization', dailyHistory);

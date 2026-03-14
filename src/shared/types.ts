@@ -58,6 +58,7 @@ export interface CollectionState {
 export interface DailyUtilRecord {
   date: string; // YYYY-MM-DD
   percent: number;
+  mood?: MamaMood | MamaErrorExpression;
 }
 
 /** Input for trigger evaluation */

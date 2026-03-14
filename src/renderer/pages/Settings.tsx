@@ -418,7 +418,7 @@ export default function Settings() {
                       d.setDate(d.getDate() - i);
                       const dateStr = d.toISOString().slice(0, 10);
                       const entry = dailyHistory.find((h) => h.date === dateStr);
-                      cells.push({ date: dateStr, percent: entry?.percent ?? -1 });
+                      cells.push({ date: dateStr, percent: entry?.percent ?? -1, mood: entry?.mood });
                     }
                     return cells.map((cell) => (
                       <div
@@ -432,7 +432,7 @@ export default function Settings() {
                           width: '100%',
                           aspectRatio: '1',
                           borderRadius: 2,
-                          background: cell.percent < 0 ? '#f3f4f6' : getMoodColor(cell.percent),
+                          background: cell.percent < 0 ? '#f3f4f6' : getMoodColor(cell.percent, cell.mood),
                           transition: 'background 0.3s ease, transform 0.15s ease',
                           cursor: 'default',
                           transform: hoveredCell?.date === cell.date ? 'scale(1.3)' : 'scale(1)',
@@ -509,12 +509,23 @@ export default function Settings() {
   );
 }
 
-function getMoodColor(percent: number): string {
+const MOOD_CELL_COLORS: Record<string, string> = {
+  angry: '#ef4444',
+  worried: '#eab308',
+  happy: '#22c55e',
+  proud: '#f59e0b',
+  confused: '#9ca3af',
+  sleeping: '#9ca3af',
+};
+
+function getMoodColor(percent: number, mood?: string): string {
   if (percent <= 0) return '#e5e7eb';
-  if (percent < 25) return '#ef4444';  // angry
-  if (percent < 60) return '#eab308';  // worried
-  if (percent < 85) return '#22c55e';  // happy
-  return '#f59e0b';                     // proud
+  if (mood && MOOD_CELL_COLORS[mood]) return MOOD_CELL_COLORS[mood];
+  // Fallback for old records without mood field
+  if (percent < 25) return '#ef4444';
+  if (percent < 60) return '#eab308';
+  if (percent < 85) return '#22c55e';
+  return '#f59e0b';
 }
 
 function calcStreak(history: DailyUtilRecord[]): number {
