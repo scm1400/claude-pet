@@ -95,4 +95,8 @@ export function registerIpcHandlers(
   ipcMain.handle(IPC_CHANNELS.GET_SKIN_CONFIG, () => {
     return getSkinConfig();
   });
+
+  ipcMain.handle(IPC_CHANNELS.DAILY_HISTORY_GET, () => {
+    return (store as any).get('dailyUtilization', []);
+  });
 }

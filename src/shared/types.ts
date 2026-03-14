@@ -135,4 +135,5 @@ export const IPC_CHANNELS = {
   UPLOAD_SKIN: 'mama:upload-skin',
   RESET_SKIN: 'mama:reset-skin',
   GET_SKIN_CONFIG: 'mama:get-skin-config',
+  DAILY_HISTORY_GET: 'mama:daily-history-get',
 } as const;

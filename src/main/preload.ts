@@ -20,6 +20,7 @@ const CHANNELS = {
   UPLOAD_SKIN: 'mama:upload-skin',
   RESET_SKIN: 'mama:reset-skin',
   GET_SKIN_CONFIG: 'mama:get-skin-config',
+  DAILY_HISTORY_GET: 'mama:daily-history-get',
 } as const;
 
 contextBridge.exposeInMainWorld('electronAPI', {
@@ -95,5 +96,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 
   getSkinConfig: (): Promise<unknown> => {
     return ipcRenderer.invoke(CHANNELS.GET_SKIN_CONFIG);
+  },
+
+  getDailyHistory: (): Promise<unknown> => {
+    return ipcRenderer.invoke(CHANNELS.DAILY_HISTORY_GET);
   },
 });

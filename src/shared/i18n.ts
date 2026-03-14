@@ -91,6 +91,8 @@ const UI_STRINGS = {
     skin_preview: '미리보기',
     skin_file_too_large: '파일이 너무 큽니다 (최대 2MB)',
     skin_invalid_format: '지원하지 않는 형식입니다 (PNG/JPG/GIF)',
+    streak_days: '일 연속',
+    streak_label: '사용 기록',
   },
   en: {
     settings_title: 'Claude Mama Settings',
@@ -160,6 +162,8 @@ const UI_STRINGS = {
     skin_preview: 'Preview',
     skin_file_too_large: 'File too large (max 2MB)',
     skin_invalid_format: 'Unsupported format (PNG/JPG/GIF)',
+    streak_days: ' day streak',
+    streak_label: 'Usage History',
   },
   ja: {
     settings_title: 'Claude Mama 設定',
@@ -229,6 +233,8 @@ const UI_STRINGS = {
     skin_preview: 'プレビュー',
     skin_file_too_large: 'ファイルが大きすぎます（最大2MB）',
     skin_invalid_format: 'サポートされていない形式です（PNG/JPG/GIF）',
+    streak_days: '日連続',
+    streak_label: '使用履歴',
   },
   zh: {
     settings_title: 'Claude Mama 设置',
@@ -298,6 +304,8 @@ const UI_STRINGS = {
     skin_preview: '预览',
     skin_file_too_large: '文件太大（最大2MB）',
     skin_invalid_format: '不支持的格式（PNG/JPG/GIF）',
+    streak_days: '天连续',
+    streak_label: '使用记录',
   },
 } as const;
 
