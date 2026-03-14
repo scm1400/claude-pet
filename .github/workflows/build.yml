@@ -60,58 +60,30 @@ jobs:
             release/*.deb
           retention-days: 30
 
-  build-mac:
-    runs-on: self-hosted
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 20
-          cache: npm
-
-      - run: npm ci
-
-      - run: npm run build
-
-      - name: Import code signing certificate
-        uses: apple-actions/import-codesign-certs@v3
-        with:
-          p12-file-base64: ${{ secrets.MAC_CERTIFICATE_P12 }}
-          p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
-
-      - name: Build and sign
-        run: npx electron-builder --mac --publish always
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Notarize DMG
-        run: |
-          DMG_FILE=$(find release -name "*.dmg" | head -1)
-          echo "Notarizing: $DMG_FILE"
-          xcrun notarytool submit "$DMG_FILE" \
-            --apple-id "${{ secrets.APPLE_ID }}" \
-            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
-            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
-            --wait --timeout 10m
-          xcrun stapler staple "$DMG_FILE"
-
-      - name: Notarize ZIP
-        run: |
-          ZIP_FILE=$(find release -name "*.zip" | head -1)
-          if [ -n "$ZIP_FILE" ]; then
-            echo "Notarizing: $ZIP_FILE"
-            xcrun notarytool submit "$ZIP_FILE" \
-              --apple-id "${{ secrets.APPLE_ID }}" \
-              --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
-              --team-id "${{ secrets.APPLE_TEAM_ID }}" \
-              --wait --timeout 10m
-          fi
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: mac-installer
-          path: |
-            release/*.dmg
-            release/*.zip
-          retention-days: 30
+  # build-mac: Disabled — requires macOS self-hosted runner
+  # To enable: set up a macOS runner with label 'macos' and uncomment
+  # build-mac:
+  #   runs-on: [self-hosted, macos]
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #         cache: npm
+  #     - run: npm ci
+  #     - run: npm run build
+  #     - name: Import code signing certificate
+  #       uses: apple-actions/import-codesign-certs@v3
+  #       with:
+  #         p12-file-base64: ${{ secrets.MAC_CERTIFICATE_P12 }}
+  #         p12-password: ${{ secrets.MAC_CERTIFICATE_PASSWORD }}
+  #     - run: npx electron-builder --mac --publish always
+  #       env:
+  #         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  #     - uses: actions/upload-artifact@v4
+  #       with:
+  #         name: mac-installer
+  #         path: |
+  #           release/*.dmg
+  #           release/*.zip
+  #         retention-days: 30
