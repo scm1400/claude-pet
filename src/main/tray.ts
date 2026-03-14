@@ -5,7 +5,7 @@ import { showSettingsWindow } from './settings-window';
 import { generateShareCard } from './share-card';
 import { getStore } from './ipc-handlers';
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
-import { Locale } from '../shared/types';
+import { Locale, MamaSettings } from '../shared/types';
 
 let trayInstance: Tray | null = null;
 
@@ -55,6 +55,15 @@ function updateContextMenu(mainWindow: BrowserWindow): void {
     {
       label: isVisible ? 'Hide Mama' : 'Show Mama',
       click: () => toggleWindowVisibility(mainWindow),
+    },
+    {
+      label: t(locale, 'always_on_top'),
+      type: 'checkbox',
+      checked: mainWindow.isAlwaysOnTop(),
+      click: (menuItem) => {
+        mainWindow.setAlwaysOnTop(menuItem.checked);
+        getStore().set('alwaysOnTop' as keyof MamaSettings, menuItem.checked);
+      },
     },
     { type: 'separator' },
     {

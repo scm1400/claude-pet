@@ -10,6 +10,7 @@ export default function Settings() {
     autoStart: true,
     characterVisible: true,
     locale: DEFAULT_LOCALE,
+    alwaysOnTop: true,
   });
   const [mamaState, setMamaState] = useState<MamaState | null>(null);
   const [saved, setSaved] = useState(false);
@@ -106,6 +107,19 @@ export default function Settings() {
                 onClick={() => setSettings((prev) => ({ ...prev, autoStart: !prev.autoStart }))}
               >
                 <div style={{ ...s.toggleKnob, transform: settings.autoStart ? 'translateX(16px)' : 'translateX(0)' }} />
+              </div>
+            </label>
+          </div>
+
+          {/* Always on Top */}
+          <div style={s.card}>
+            <label style={s.toggleRow}>
+              <span>{i('always_on_top')}</span>
+              <div
+                style={{ ...s.toggle, background: settings.alwaysOnTop ? '#ec4899' : '#d1d5db' }}
+                onClick={() => setSettings((prev) => ({ ...prev, alwaysOnTop: !prev.alwaysOnTop }))}
+              >
+                <div style={{ ...s.toggleKnob, transform: settings.alwaysOnTop ? 'translateX(16px)' : 'translateX(0)' }} />
               </div>
             </label>
           </div>
