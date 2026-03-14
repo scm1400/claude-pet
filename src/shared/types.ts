@@ -25,6 +25,7 @@ export interface MamaSettings {
   autoStart: boolean;
   characterVisible: boolean;
   locale: Locale;
+  alwaysOnTop: boolean;
 }
 
 /** Quote rarity tiers */

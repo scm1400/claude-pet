@@ -73,6 +73,7 @@ const UI_STRINGS = {
     share_no_data: '아직 데이터 수집 중...',
     tray_check_update: '업데이트 확인',
     update_up_to_date: '최신 버전입니다!',
+    always_on_top: '항상 위에 표시',
   },
   en: {
     settings_title: 'Claude Mama Settings',
@@ -124,6 +125,7 @@ const UI_STRINGS = {
     share_no_data: 'Still collecting data...',
     tray_check_update: 'Check for Updates',
     update_up_to_date: 'You are up to date!',
+    always_on_top: 'Always on top',
   },
   ja: {
     settings_title: 'Claude Mama 設定',
@@ -175,6 +177,7 @@ const UI_STRINGS = {
     share_no_data: 'まだデータ収集中...',
     tray_check_update: 'アップデートを確認',
     update_up_to_date: '最新バージョンです！',
+    always_on_top: '常に最前面に表示',
   },
   zh: {
     settings_title: 'Claude Mama 设置',
@@ -226,6 +229,7 @@ const UI_STRINGS = {
     share_no_data: '还在收集数据...',
     tray_check_update: '检查更新',
     update_up_to_date: '已是最新版本！',
+    always_on_top: '始终在最前面',
   },
 } as const;
 
