@@ -7,10 +7,11 @@ import { QuoteCollectionManager } from '../core/quote-collection';
 import { generateShareCard } from './share-card';
 import { DEFAULT_LOCALE } from '../shared/i18n';
 
-const defaults: Omit<MamaSettings, 'position'> = {
+const defaults: MamaSettings = {
   autoStart: true,
   characterVisible: true,
   locale: DEFAULT_LOCALE,
+  alwaysOnTop: true,
 };
 
 const store = new Store({ defaults });
@@ -41,6 +42,11 @@ export function registerIpcHandlers(
     // Sync auto-launch preference
     if (typeof settings.autoStart === 'boolean') {
       await updateAutoLaunch(settings.autoStart);
+    }
+
+    // Sync always-on-top preference
+    if (typeof settings.alwaysOnTop === 'boolean' && mainWindow && !mainWindow.isDestroyed()) {
+      mainWindow.setAlwaysOnTop(settings.alwaysOnTop);
     }
 
     // Re-broadcast state with updated settings (e.g. locale change)

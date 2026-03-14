@@ -112,7 +112,7 @@ function createWindow(): BrowserWindow {
     y,
     transparent: true,
     frame: false,
-    alwaysOnTop: true,
+    alwaysOnTop: store.get('alwaysOnTop', true),
     hasShadow: false,
     resizable: false,
     skipTaskbar: true,
