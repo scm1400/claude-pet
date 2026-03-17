@@ -3,36 +3,36 @@ import { contextBridge, ipcRenderer } from 'electron';
 // Channel names inlined to avoid require() in sandboxed preload context.
 // Keep in sync with src/shared/types.ts IPC_CHANNELS.
 const CHANNELS = {
-  MAMA_STATE_UPDATE: 'mama:state-update',
-  MAMA_STATE_GET: 'mama:state-get',
-  SETTINGS_GET: 'mama:settings-get',
-  SETTINGS_SET: 'mama:settings-set',
-  SHOW_SETTINGS: 'mama:show-settings',
-  COLLECTION_GET: 'mama:collection-get',
-  COLLECTION_UPDATED: 'mama:collection-updated',
-  SHARE_CARD: 'mama:share-card',
-  SET_IGNORE_MOUSE: 'mama:set-ignore-mouse',
-  SAVE_POSITION: 'mama:save-position',
-  MOVE_WINDOW: 'mama:move-window',
-  SHOW_CONTEXT_MENU: 'mama:show-context-menu',
-  BADGE_GET: 'mama:badge-get',
-  BADGE_UNLOCKED: 'mama:badge-unlocked',
-  UPLOAD_SKIN: 'mama:upload-skin',
-  RESET_SKIN: 'mama:reset-skin',
-  GET_SKIN_CONFIG: 'mama:get-skin-config',
-  SKIN_CONFIG_UPDATED: 'mama:skin-config-updated',
-  DAILY_HISTORY_GET: 'mama:daily-history-get',
+  PET_STATE_UPDATE: 'pet:state-update',
+  PET_STATE_GET: 'pet:state-get',
+  SETTINGS_GET: 'pet:settings-get',
+  SETTINGS_SET: 'pet:settings-set',
+  SHOW_SETTINGS: 'pet:show-settings',
+  COLLECTION_GET: 'pet:collection-get',
+  COLLECTION_UPDATED: 'pet:collection-updated',
+  SHARE_CARD: 'pet:share-card',
+  SET_IGNORE_MOUSE: 'pet:set-ignore-mouse',
+  SAVE_POSITION: 'pet:save-position',
+  MOVE_WINDOW: 'pet:move-window',
+  SHOW_CONTEXT_MENU: 'pet:show-context-menu',
+  BADGE_GET: 'pet:badge-get',
+  BADGE_UNLOCKED: 'pet:badge-unlocked',
+  UPLOAD_SKIN: 'pet:upload-skin',
+  RESET_SKIN: 'pet:reset-skin',
+  GET_SKIN_CONFIG: 'pet:get-skin-config',
+  SKIN_CONFIG_UPDATED: 'pet:skin-config-updated',
+  DAILY_HISTORY_GET: 'pet:daily-history-get',
 } as const;
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  onMamaStateUpdate: (callback: (state: unknown) => void) => {
+  onPetStateUpdate: (callback: (state: unknown) => void) => {
     const listener = (_event: Electron.IpcRendererEvent, state: unknown) => callback(state);
-    ipcRenderer.on(CHANNELS.MAMA_STATE_UPDATE, listener);
-    return () => ipcRenderer.removeListener(CHANNELS.MAMA_STATE_UPDATE, listener);
+    ipcRenderer.on(CHANNELS.PET_STATE_UPDATE, listener);
+    return () => ipcRenderer.removeListener(CHANNELS.PET_STATE_UPDATE, listener);
   },
 
-  getMamaState: (): Promise<unknown> => {
-    return ipcRenderer.invoke(CHANNELS.MAMA_STATE_GET);
+  getPetState: (): Promise<unknown> => {
+    return ipcRenderer.invoke(CHANNELS.PET_STATE_GET);
   },
 
   getSettings: (): Promise<unknown> => {

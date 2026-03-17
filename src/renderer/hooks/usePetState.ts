@@ -1,19 +1,19 @@
 import { useEffect, useRef, useState } from 'react';
-import { MamaState, MamaMood, MamaErrorExpression } from '../../shared/types';
-import { MESSAGE_POOLS } from '../../core/messages';
+import { PetState, PetMood, PetErrorExpression } from '../../shared/types';
+import { MESSAGE_POOLS } from '../../core/pet-messages';
 
-type Expression = MamaMood | MamaErrorExpression;
+type Expression = PetMood | PetErrorExpression;
 
 const DEBUG_UTILIZATION: Record<Expression, number> = {
-  angry: 5, worried: 30, happy: 65, proud: 95, confused: 0, sleeping: 0,
+  happy: 65, playful: 80, sleepy: 20, worried: 40, bored: 10, confused: 0, sleeping: 0,
 };
 
-export function useMamaState(): MamaState | null {
-  const [state, setState] = useState<MamaState | null>(null);
-  const realStateRef = useRef<MamaState | null>(null);
+export function usePetState(): PetState | null {
+  const [state, setState] = useState<PetState | null>(null);
+  const realStateRef = useRef<PetState | null>(null);
 
   useEffect(() => {
-    const cleanup = window.electronAPI.onMamaStateUpdate((newState: MamaState) => {
+    const cleanup = window.electronAPI.onPetStateUpdate((newState: PetState) => {
       realStateRef.current = newState;
       setState(newState);
     });

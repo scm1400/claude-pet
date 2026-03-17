@@ -3,23 +3,24 @@ import path from 'path';
 import fs from 'fs';
 import { getStore } from './ipc-handlers';
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
-import { MamaState, Locale } from '../shared/types';
+import { PetState, Locale } from '../shared/types';
 import { getQuoteById } from '../core/quote-registry';
 
 let offscreenWin: BrowserWindow | null = null;
 let isGenerating = false;
 
-let currentMamaState: MamaState | null = null;
+let currentPetState: PetState | null = null;
 
-export function setShareCardState(state: MamaState): void {
-  currentMamaState = state;
+export function setShareCardState(state: PetState): void {
+  currentPetState = state;
 }
 
 const MOOD_COLORS: Record<string, string> = {
-  angry: '#ef4444',
-  worried: '#eab308',
   happy: '#22c55e',
-  proud: '#f59e0b',
+  playful: '#f59e0b',
+  sleepy: '#6b7280',
+  worried: '#eab308',
+  bored: '#9ca3af',
   confused: '#8b5cf6',
   sleeping: '#6b7280',
 };
@@ -57,8 +58,8 @@ export async function generateShareCard(quoteId?: string): Promise<boolean> {
   const locale = getStore().get('locale', DEFAULT_LOCALE) as Locale;
 
   try {
-    if (!currentMamaState) {
-      new Notification({ title: 'Claude Mama', body: t(locale, 'share_no_data') }).show();
+    if (!currentPetState) {
+      new Notification({ title: 'Claude Pet', body: t(locale, 'share_no_data') }).show();
       return false;
     }
 
@@ -72,8 +73,8 @@ export async function generateShareCard(quoteId?: string): Promise<boolean> {
     });
 
     const charImagePath = app.isPackaged
-      ? path.join(app.getAppPath(), 'dist/renderer/assets/claude-mama.png')
-      : path.join(process.cwd(), 'src/renderer/assets/claude-mama.png');
+      ? path.join(app.getAppPath(), 'dist/renderer/assets/claude-pet.png')
+      : path.join(process.cwd(), 'src/renderer/assets/claude-pet.png');
 
     let characterDataUrl = '';
     try {
@@ -91,7 +92,7 @@ export async function generateShareCard(quoteId?: string): Promise<boolean> {
     }
 
     // Get locale-specific mood name
-    const moodKey = `mood_${currentMamaState.mood}` as Parameters<typeof t>[1];
+    const moodKey = `mood_${currentPetState.mood}` as Parameters<typeof t>[1];
     const moodName = t(locale, moodKey);
 
     // Format generation time in UTC (e.g. "2026-03-10 12:34 UTC")
@@ -104,14 +105,14 @@ export async function generateShareCard(quoteId?: string): Promise<boolean> {
       + ' UTC';
 
     const cardData = {
-      mood: currentMamaState.mood,
+      mood: currentPetState.mood,
       moodName,
-      moodColor: MOOD_COLORS[currentMamaState.mood] || '#ec4899',
-      message: currentMamaState.message,
-      weeklyPercent: currentMamaState.utilizationPercent,
-      fiveHourPercent: currentMamaState.fiveHourPercent,
-      resetsAt: currentMamaState.resetsAt,
-      fiveHourResetsAt: currentMamaState.fiveHourResetsAt,
+      moodColor: MOOD_COLORS[currentPetState.mood] || '#ec4899',
+      message: currentPetState.message,
+      weeklyPercent: currentPetState.utilizationPercent,
+      fiveHourPercent: currentPetState.fiveHourPercent,
+      resetsAt: currentPetState.resetsAt,
+      fiveHourResetsAt: currentPetState.fiveHourResetsAt,
       characterDataUrl,
       rarityBadge,
       generatedAt,
@@ -132,7 +133,7 @@ export async function generateShareCard(quoteId?: string): Promise<boolean> {
     const timestamp = new Date().toISOString().slice(0, 10);
     const { filePath, canceled } = await dialog.showSaveDialog({
       title: t(locale, 'tray_share'),
-      defaultPath: path.join(app.getPath('desktop'), `claude-mama-${timestamp}.png`),
+      defaultPath: path.join(app.getPath('desktop'), `claude-pet-${timestamp}.png`),
       filters: [{ name: 'PNG Image', extensions: ['png'] }],
     });
 

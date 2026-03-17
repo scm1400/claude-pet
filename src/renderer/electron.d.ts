@@ -3,15 +3,15 @@ declare module '*.png' {
   export default src;
 }
 
-import { MamaState, MamaSettings, SkinUploadResponse } from '../shared/types';
+import { PetState, PetSettings, SkinUploadResponse } from '../shared/types';
 
 declare global {
   interface Window {
     electronAPI: {
-      onMamaStateUpdate: (callback: (state: MamaState) => void) => () => void;
-      getMamaState: () => Promise<MamaState | null>;
-      getSettings: () => Promise<MamaSettings>;
-      setSettings: (settings: Partial<MamaSettings>) => Promise<MamaSettings>;
+      onPetStateUpdate: (callback: (state: PetState) => void) => () => void;
+      getPetState: () => Promise<PetState | null>;
+      getSettings: () => Promise<PetSettings>;
+      setSettings: (settings: Partial<PetSettings>) => Promise<PetSettings>;
       showSettings: () => void;
       getCollection(): Promise<unknown>;
       onCollectionUpdated(callback: (state: unknown) => void): () => void;

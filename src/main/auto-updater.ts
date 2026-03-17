@@ -52,7 +52,7 @@ export async function checkForUpdatesManual(): Promise<void> {
   if (!app.isPackaged) {
     dialog.showMessageBox({
       type: 'info',
-      title: 'Claude Mama',
+      title: 'Claude Pet',
       message: 'Auto-update is not available in dev mode.',
     });
     return;
@@ -70,7 +70,7 @@ export async function checkForUpdatesManual(): Promise<void> {
     if (!result || !result.updateInfo || result.updateInfo.version === app.getVersion()) {
       await dialog.showMessageBox({
         type: 'info',
-        title: 'Claude Mama',
+        title: 'Claude Pet',
         message: t(locale, 'update_up_to_date'),
         detail: `v${app.getVersion()}`,
       });
@@ -81,7 +81,7 @@ export async function checkForUpdatesManual(): Promise<void> {
     const newVersion = result.updateInfo.version;
     const { response } = await dialog.showMessageBox({
       type: 'info',
-      title: 'Claude Mama',
+      title: 'Claude Pet',
       message: t(locale, 'update_found'),
       detail: `v${app.getVersion()} → v${newVersion}`,
       buttons: [t(locale, 'update_btn_download'), t(locale, 'update_btn_cancel')],
@@ -95,7 +95,7 @@ export async function checkForUpdatesManual(): Promise<void> {
   } catch (err: any) {
     await dialog.showMessageBox({
       type: 'error',
-      title: 'Claude Mama',
+      title: 'Claude Pet',
       message: t(locale, 'update_check_failed'),
       detail: err.message,
     });

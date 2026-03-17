@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { MamaSettings, MamaState, Locale, SkinConfig, SkinMode, MamaMood, MamaErrorExpression, DailyUtilRecord } from '../../shared/types';
+import { PetSettings, PetState, Locale, SkinConfig, SkinMode, PetMood, PetErrorExpression, DailyUtilRecord } from '../../shared/types';
 import { t, LOCALE_LABELS, UIStringKey, DEFAULT_LOCALE } from '../../shared/i18n';
 import Collection from './Collection';
 import { toFileUrl } from '../../shared/utils';
 
 const LOCALES: Locale[] = ['ko', 'en', 'ja', 'zh'];
-const ALL_EXPRESSIONS: (MamaMood | MamaErrorExpression)[] = ['angry', 'worried', 'happy', 'proud', 'confused', 'sleeping'];
+const ALL_EXPRESSIONS: (PetMood | PetErrorExpression)[] = ['happy', 'playful', 'sleepy', 'worried', 'bored', 'confused', 'sleeping'];
 
-type MoodFrame = Record<MamaMood | MamaErrorExpression, { startFrame: number; endFrame: number; fps: number }>;
+type MoodFrame = Record<PetMood | PetErrorExpression, { startFrame: number; endFrame: number; fps: number }>;
 
 function autoMapMoods(cols: number, rows: number): MoodFrame {
   const totalFrames = cols * rows;
@@ -41,13 +41,13 @@ function frameToGrid(frame: number, cols: number): { col: number; row: number } 
 }
 
 export default function Settings() {
-  const [settings, setSettings] = useState<MamaSettings>({
+  const [settings, setSettings] = useState<PetSettings>({
     autoStart: true,
     characterVisible: true,
     locale: DEFAULT_LOCALE,
     alwaysOnTop: true,
   });
-  const [mamaState, setMamaState] = useState<MamaState | null>(null);
+  const [petState, setPetState] = useState<PetState | null>(null);
   const [saved, setSaved] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'settings' | 'collection'>('settings');
@@ -60,14 +60,14 @@ export default function Settings() {
   const locale = settings.locale;
   const i = (key: UIStringKey) => t(locale, key);
 
-  const EXPRESSIONS: (MamaMood | MamaErrorExpression)[] = ['angry', 'worried', 'happy', 'proud', 'confused', 'sleeping'];
+  const EXPRESSIONS: (PetMood | PetErrorExpression)[] = ['happy', 'playful', 'sleepy', 'worried', 'bored', 'confused', 'sleeping'];
   const [uploadError, setUploadError] = useState<UIStringKey | null>(null);
 
   // Auto-save skin config whenever it changes (no separate save button needed)
   const saveSkinConfig = async (config: SkinConfig | ((prev: SkinConfig) => SkinConfig)) => {
     const resolved = typeof config === 'function' ? config(skinConfig) : config;
     setSkinConfig(resolved);
-    await window.electronAPI.setSettings({ skin: resolved } as Partial<MamaSettings>);
+    await window.electronAPI.setSettings({ skin: resolved } as Partial<PetSettings>);
   };
 
   const handleSkinModeChange = async (mode: SkinMode) => {
@@ -119,11 +119,11 @@ export default function Settings() {
 
   useEffect(() => {
     window.electronAPI.getSettings().then((s) => {
-      setSettings(s as MamaSettings);
+      setSettings(s as PetSettings);
       setLoading(false);
     });
-    window.electronAPI.getMamaState().then((state) => {
-      if (state) setMamaState(state as MamaState);
+    window.electronAPI.getPetState().then((state) => {
+      if (state) setPetState(state as PetState);
     });
     window.electronAPI.getSkinConfig().then((c) => {
       if (c) setSkinConfig(c as SkinConfig);
@@ -131,15 +131,15 @@ export default function Settings() {
     window.electronAPI.getDailyHistory().then((h) => {
       if (h) setDailyHistory(h as DailyUtilRecord[]);
     });
-    const unsub = window.electronAPI.onMamaStateUpdate((state) => {
-      setMamaState(state as MamaState);
+    const unsub = window.electronAPI.onPetStateUpdate((state) => {
+      setPetState(state as PetState);
     });
     return unsub;
   }, []);
 
   const handleSave = async () => {
     // Exclude skin from general save — skin is auto-saved via saveSkinConfig
-    const { skin, ...generalSettings } = settings as MamaSettings & { skin?: unknown };
+    const { skin, ...generalSettings } = settings as PetSettings & { skin?: unknown };
     await window.electronAPI.setSettings(generalSettings);
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
@@ -153,9 +153,9 @@ export default function Settings() {
     );
   }
 
-  const sourceKey = mamaState ? `source_${mamaState.dataSource}` as UIStringKey : 'source_none' as UIStringKey;
-  const moodKey = mamaState ? `mood_${mamaState.mood}` as UIStringKey : undefined;
-  const errorMsg = mamaState?.error ?? null;
+  const sourceKey = petState ? `source_${petState.dataSource}` as UIStringKey : 'source_none' as UIStringKey;
+  const moodKey = petState ? `mood_${petState.mood}` as UIStringKey : undefined;
+  const errorMsg = petState?.error ?? null;
 
   return (
     <div style={s.root}>
@@ -530,21 +530,21 @@ export default function Settings() {
             <div style={s.statRow}>
               <span style={s.statKey}>{i('weekly_usage')}</span>
               <span style={s.statVal}>
-                {mamaState ? `${mamaState.utilizationPercent.toFixed(1)}%` : '—'}
+                {petState ? `${petState.utilizationPercent.toFixed(1)}%` : '—'}
               </span>
             </div>
             <div style={s.statRow}>
               <span style={s.statKey}>{i('five_hour_usage')}</span>
               <span style={s.statVal}>
-                {mamaState?.fiveHourPercent != null ? `${mamaState.fiveHourPercent.toFixed(1)}%` : '—'}
+                {petState?.fiveHourPercent != null ? `${petState.fiveHourPercent.toFixed(1)}%` : '—'}
               </span>
             </div>
             <div style={s.statRow}>
               <span style={s.statKey}>{i('data_source')}</span>
               <span style={{
                 ...s.statVal,
-                color: mamaState?.dataSource === 'api' ? '#22c55e'
-                  : mamaState?.dataSource === 'cache' ? '#f59e0b' : '#ef4444',
+                color: petState?.dataSource === 'api' ? '#22c55e'
+                  : petState?.dataSource === 'cache' ? '#f59e0b' : '#ef4444',
               }}>
                 {i(sourceKey)}
               </span>
@@ -644,7 +644,7 @@ export default function Settings() {
             <div style={s.cardLabel}>{i('api_connection')}</div>
             {errorMsg ? (
               <div style={badge('#fef2f2', '#dc2626')}>{errorMsg}</div>
-            ) : mamaState?.dataSource === 'api' ? (
+            ) : petState?.dataSource === 'api' ? (
               <div style={badge('#f0fdf4', '#16a34a')}>{i('connected')}</div>
             ) : (
               <div style={badge('#fffbeb', '#92400e')}>
@@ -668,10 +668,11 @@ export default function Settings() {
 }
 
 const MOOD_CELL_COLORS: Record<string, string> = {
-  angry: '#ef4444',
-  worried: '#eab308',
   happy: '#22c55e',
-  proud: '#f59e0b',
+  playful: '#f59e0b',
+  sleepy: '#9ca3af',
+  worried: '#eab308',
+  bored: '#6b7280',
   confused: '#9ca3af',
   sleeping: '#9ca3af',
 };

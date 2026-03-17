@@ -10,7 +10,7 @@ let mamaAutoLaunch: InstanceType<typeof AutoLaunch> | null = null;
 function getAutoLaunch(): InstanceType<typeof AutoLaunch> | null {
   if (mamaAutoLaunch) return mamaAutoLaunch;
   try {
-    mamaAutoLaunch = new AutoLaunch({ name: 'Claude Mama' });
+    mamaAutoLaunch = new AutoLaunch({ name: 'Claude Pet' });
     return mamaAutoLaunch;
   } catch {
     // Fails in dev/non-packaged mode — no Electron app path available

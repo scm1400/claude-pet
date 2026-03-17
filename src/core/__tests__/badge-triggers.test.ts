@@ -11,8 +11,8 @@ function makeCtx(overrides: Partial<BadgeTriggerContext> = {}): BadgeTriggerCont
     firstApiCallSeen: true,
     now: new Date('2026-03-14T10:00:00Z'),
     resetsAt: null,
-    proudCount: 0,
-    angryCount: 0,
+    happyCount: 0,
+    worriedCount: 0,
     ...overrides,
   };
 }
@@ -39,12 +39,12 @@ describe('evaluateBadgeTriggers', () => {
     expect(evaluateBadgeTriggers(ctx)).toContain('badge_streak_3');
   });
 
-  it('triggers badge_mama_7days after 7 days', () => {
+  it('triggers badge_7days after 7 days', () => {
     const ctx = makeCtx({
       installDate: '2026-03-07T00:00:00Z',
       now: new Date('2026-03-14T10:00:00Z'),
     });
-    expect(evaluateBadgeTriggers(ctx)).toContain('badge_mama_7days');
+    expect(evaluateBadgeTriggers(ctx)).toContain('badge_7days');
   });
 
   it('triggers badge_half at 50%', () => {
@@ -57,18 +57,18 @@ describe('evaluateBadgeTriggers', () => {
     expect(evaluateBadgeTriggers(ctx)).toContain('badge_full');
   });
 
-  it('triggers badge_proud_10 at proudCount >= 10', () => {
-    const ctx = makeCtx({ proudCount: 10 });
-    expect(evaluateBadgeTriggers(ctx)).toContain('badge_proud_10');
+  it('triggers badge_happy_10 at happyCount >= 10', () => {
+    const ctx = makeCtx({ happyCount: 10 });
+    expect(evaluateBadgeTriggers(ctx)).toContain('badge_happy_10');
   });
 
-  it('triggers badge_survivor at angryCount >= 10 with active usage', () => {
-    const ctx = makeCtx({ angryCount: 10, weeklyUtilization: 20 });
+  it('triggers badge_survivor at worriedCount >= 10 with active usage', () => {
+    const ctx = makeCtx({ worriedCount: 10, weeklyUtilization: 20 });
     expect(evaluateBadgeTriggers(ctx)).toContain('badge_survivor');
   });
 
-  it('does not trigger badge_survivor at angryCount >= 10 with zero usage', () => {
-    const ctx = makeCtx({ angryCount: 10, weeklyUtilization: 0 });
+  it('does not trigger badge_survivor at worriedCount >= 10 with zero usage', () => {
+    const ctx = makeCtx({ worriedCount: 10, weeklyUtilization: 0 });
     expect(evaluateBadgeTriggers(ctx)).not.toContain('badge_survivor');
   });
 

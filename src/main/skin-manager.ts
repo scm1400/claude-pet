@@ -25,7 +25,7 @@ function cleanupOldSkins(keepPaths: string[]): void {
   }
 }
 
-const VALID_MOODS = ['angry', 'worried', 'happy', 'proud', 'confused', 'sleeping'];
+const VALID_MOODS = ['happy', 'playful', 'sleepy', 'worried', 'bored', 'confused', 'sleeping'];
 
 export async function uploadSkinImage(mood?: string): Promise<SkinUploadResponse> {
   if (mood && !VALID_MOODS.includes(mood)) return { ok: false, error: 'invalid_format' };

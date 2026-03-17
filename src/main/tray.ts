@@ -5,7 +5,7 @@ import { showSettingsWindow } from './settings-window';
 import { generateShareCard } from './share-card';
 import { getStore } from './ipc-handlers';
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
-import { Locale, MamaSettings } from '../shared/types';
+import { Locale, PetSettings } from '../shared/types';
 
 let trayInstance: Tray | null = null;
 
@@ -13,7 +13,7 @@ export function createTray(mainWindow: BrowserWindow): Tray {
   const icon = buildTrayIcon();
 
   trayInstance = new Tray(icon);
-  trayInstance.setToolTip('Claude Mama');
+  trayInstance.setToolTip('Claude Pet');
 
   updateContextMenu(mainWindow);
 
@@ -53,7 +53,7 @@ function updateContextMenu(mainWindow: BrowserWindow): void {
 
   const contextMenu = Menu.buildFromTemplate([
     {
-      label: isVisible ? 'Hide Mama' : 'Show Mama',
+      label: isVisible ? 'Hide Pet' : 'Show Pet',
       click: () => toggleWindowVisibility(mainWindow),
     },
     {
@@ -62,7 +62,7 @@ function updateContextMenu(mainWindow: BrowserWindow): void {
       checked: mainWindow.isAlwaysOnTop(),
       click: (menuItem) => {
         mainWindow.setAlwaysOnTop(menuItem.checked);
-        getStore().set('alwaysOnTop' as keyof MamaSettings, menuItem.checked);
+        getStore().set('alwaysOnTop' as keyof PetSettings, menuItem.checked);
       },
     },
     { type: 'separator' },

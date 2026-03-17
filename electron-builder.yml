@@ -1,5 +1,5 @@
-appId: com.claudemama.app
-productName: Claude Mama
+appId: com.claudepet.app
+productName: Claude Pet
 directories:
   output: release
 files:
@@ -10,7 +10,7 @@ asar: true
 publish:
   provider: github
   owner: scm1400
-  repo: claude-mama
+  repo: claude-pet
 win:
   target:
     - target: nsis

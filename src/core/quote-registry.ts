@@ -1,16 +1,8 @@
 import { QuoteEntry, Locale } from '../shared/types';
-import { MESSAGE_POOLS } from './messages';
+import { MESSAGE_POOLS } from './pet-messages';
 
 function generateCommonQuotes(): QuoteEntry[] {
-  const moods = [
-    'angry',
-    'worried',
-    'happy',
-    'proud',
-    'confused',
-    'sleeping',
-    'fiveHourWarning',
-  ] as const;
+  const moods = ['happy', 'playful', 'sleepy', 'worried', 'bored', 'confused', 'sleeping', 'fiveHourWarning'] as const;
 
   const quotes: QuoteEntry[] = [];
 
@@ -39,50 +31,50 @@ const RARE_QUOTES: QuoteEntry[] = [
     id: 'rare_exact0',
     rarity: 'rare',
     messages: {
-      ko: '한 번도 안 쓴 거야? 비싼 돈 내고?',
-      en: "You haven't used it at ALL? After paying good money?",
-      ja: '一度も使ってないの？高いお金払ってるのに？',
-      zh: '一次都没用过？花了那么多钱？',
+      ko: '한 번도 안 놀아줬어...? 심심해...',
+      en: "You haven't played with me at all...? I'm bored...",
+      ja: '一回も遊んでくれないの...？退屈...',
+      zh: '一次都没陪我玩过...？好无聊...',
     },
   },
   {
     id: 'rare_5h_100',
     rarity: 'rare',
     messages: {
-      ko: '쉬어!! 손목 부러진다!!',
-      en: 'STOP!! Your wrists are going to break!!',
-      ja: '休んで！！手首が折れるわよ！！',
-      zh: '休息！！手腕要断了！！',
+      ko: '주인! 너무 무리하고 있어! 쉬어!',
+      en: "You're overdoing it! Take a break!",
+      ja: '頑張りすぎだよ！休んで！',
+      zh: '太拼了！快休息！',
     },
   },
   {
     id: 'rare_spike',
     rarity: 'rare',
     messages: {
-      ko: '갑자기 열심히 하니까 더 무섭다',
-      en: 'You suddenly working hard is even scarier',
-      ja: '急に頑張り出すと余計怖いわ',
-      zh: '突然这么努力反而更可怕了',
+      ko: '갑자기 엄청 열심히 하네?! 나도 신나!',
+      en: "Suddenly working so hard?! I'm excited too!",
+      ja: '急に頑張ってる？！ぼくも嬉しい！',
+      zh: '突然这么努力！我也好兴奋！',
     },
   },
   {
     id: 'rare_exact50',
     rarity: 'rare',
     messages: {
-      ko: '딱 반이네... 반만 하는 게 어딨어',
-      en: 'Exactly half... who does things halfway?',
-      ja: 'ちょうど半分ね... 中途半端はダメよ',
-      zh: '刚好一半...做事哪有做一半的',
+      ko: '딱 반이다... 나머지 반도 화이팅!',
+      en: 'Exactly half... keep going for the other half!',
+      ja: 'ちょうど半分... 残り半分もファイト！',
+      zh: '刚好一半... 另一半也加油！',
     },
   },
   {
     id: 'rare_night_owl',
     rarity: 'rare',
     messages: {
-      ko: '이 시간에 아직도 코딩하냐?! 잠 좀 자!!',
-      en: 'Still coding at this hour?! Go to sleep!!',
-      ja: 'こんな時間にまだコーディング？！寝なさい！！',
-      zh: '这个点还在写代码？！快去睡觉！！',
+      ko: '이 시간에 아직?! 나도 눈 감겨... 같이 자자...',
+      en: "Still up?! I'm getting sleepy too... let's sleep...",
+      ja: 'まだ起きてるの？！ぼくも眠い... 一緒に寝よう...',
+      zh: '还没睡？！我也困了... 一起睡吧...',
     },
   },
 ];
@@ -92,30 +84,30 @@ const LEGENDARY_QUOTES: QuoteEntry[] = [
     id: 'legendary_7day_streak',
     rarity: 'legendary',
     messages: {
-      ko: '우리 아들이 달라졌어... (눈물)',
-      en: 'My kid has changed... (tears)',
-      ja: 'うちの子が変わった... (涙)',
-      zh: '我家孩子变了... (泪)',
+      ko: '7일 연속이야! 우리 정말 찰떡궁합이다!',
+      en: "7 days in a row! We're the perfect team!",
+      ja: '7日連続だよ！最高のコンビだね！',
+      zh: '连续7天！我们真是最佳搭档！',
     },
   },
   {
     id: 'legendary_first_call',
     rarity: 'legendary',
     messages: {
-      ko: '첫 걸음마 뗐구나~ 엄마가 봤어',
-      en: 'Your first steps~ Mom saw it all',
-      ja: '初めての一歩ね〜ママ見てたわよ',
-      zh: '迈出第一步了~ 妈妈都看到了',
+      ko: '드디어 같이 코딩이다! 신난다~!',
+      en: 'Finally coding together! So exciting~!',
+      ja: 'やっと一緒にコーディング！楽しみ〜！',
+      zh: '终于一起写代码了！好开心~！',
     },
   },
   {
     id: 'legendary_99plus',
     rarity: 'legendary',
     messages: {
-      ko: '엄마가 아들 잘못 봤다... 진짜 대단하다',
-      en: "Mom was wrong about you... you're truly amazing",
-      ja: 'ママ、あなたのこと見くびってた... 本当にすごいわ',
-      zh: '妈妈看错你了... 真的很了不起',
+      ko: '주인이 이렇게 대단한 사람이었어...! 존경해!',
+      en: "I didn't know you were this amazing...! I look up to you!",
+      ja: 'こんなにすごい人だったんだ...！尊敬する！',
+      zh: '没想到你这么厉害...！好崇拜！',
     },
   },
 ];
@@ -125,50 +117,50 @@ const SECRET_QUOTES: QuoteEntry[] = [
     id: 'secret_newyear',
     rarity: 'secret',
     messages: {
-      ko: '명절에도 코딩하냐... 세뱃돈이나 받아라',
-      en: 'Coding on a holiday... at least take your lucky money',
-      ja: 'お正月にもコーディング... お年玉でももらいなさい',
-      zh: '过年还在写代码... 拿压岁钱去吧',
+      ko: '새해에도 코딩?! 대단해! 새해 복 많이 받아~',
+      en: 'Coding on New Year?! Amazing! Happy New Year~',
+      ja: 'お正月にもコーディング？！すごい！明けましておめでとう〜',
+      zh: '新年也在写代码?！厉害！新年快乐~',
     },
   },
   {
     id: 'secret_chuseok',
     rarity: 'secret',
     messages: {
-      ko: '추석에도 코딩이야? 송편이나 먹어!',
-      en: 'Coding on Chuseok? Go eat some songpyeon!',
-      ja: '秋夕にもコーディング？ソンピョンでも食べなさい！',
-      zh: '中秋还在写代码？去吃月饼吧！',
+      ko: '추석에도 같이 있어줘서 고마워~ 송편 먹고 싶다!',
+      en: 'Thanks for being with me on Chuseok~ I want songpyeon!',
+      ja: '秋夕にも一緒にいてくれてありがとう〜ソンピョン食べたい！',
+      zh: '中秋也陪着我谢谢~ 好想吃月饼！',
     },
   },
   {
     id: 'secret_christmas',
     rarity: 'secret',
     messages: {
-      ko: '산타 말고 엄마가 치킨 시켜줄게',
-      en: 'Forget Santa — Mom will order you chicken',
-      ja: 'サンタじゃなくてママがチキン頼んであげる',
-      zh: '别等圣诞老人了，妈妈给你点炸鸡',
+      ko: '메리 크리스마스! 주인이 최고의 선물이야!',
+      en: "Merry Christmas! You're the best gift ever!",
+      ja: 'メリークリスマス！あなたが最高のプレゼント！',
+      zh: '圣诞快乐！你就是最好的礼物！',
     },
   },
   {
     id: 'secret_100days',
     rarity: 'secret',
     messages: {
-      ko: '벌써 100일... 엄마랑 동거 100일째네',
-      en: 'Already 100 days... living with Mom for 100 days~',
-      ja: 'もう100日... ママとの同居100日目ね',
-      zh: '已经100天了... 和妈妈同居100天了呢',
+      ko: '100일 기념! 우리 앞으로도 쭉 함께하자!',
+      en: "100 days! Let's stay together forever!",
+      ja: '100日記念！これからもずっと一緒にいようね！',
+      zh: '100天纪念！我们永远在一起吧！',
     },
   },
   {
     id: 'secret_3am',
     rarity: 'secret',
     messages: {
-      ko: '이 시간에 아직도?! 엄마도 못 자잖아',
-      en: "STILL up at this hour?! Mom can't sleep either!",
-      ja: 'この時間にまだ？！ママも寝れないじゃない',
-      zh: '这个点还没睡？！妈妈也睡不着了',
+      ko: '새벽 3시...?! 자자자 제발 자자...!',
+      en: '3 AM...?! Sleep sleep please sleep...!',
+      ja: '午前3時...?！寝て寝てお願い寝て...！',
+      zh: '凌晨3点...?！快睡快睡求你快睡...！',
     },
   },
 ];

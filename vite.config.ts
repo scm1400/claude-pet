@@ -23,8 +23,8 @@ function copyMainProcessAssets() {
       const assetsDest = path.resolve(__dirname, 'dist/renderer/assets');
       fs.mkdirSync(assetsDest, { recursive: true });
       fs.copyFileSync(
-        path.resolve(__dirname, 'src/renderer/assets/claude-mama.png'),
-        path.join(assetsDest, 'claude-mama.png'),
+        path.resolve(__dirname, 'src/renderer/assets/claude-pet.png'),
+        path.join(assetsDest, 'claude-pet.png'),
       );
     },
   };

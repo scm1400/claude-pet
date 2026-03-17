@@ -13,7 +13,7 @@ export function createSettingsWindow(): BrowserWindow {
     frame: false,
     resizable: false,
     center: true,
-    title: 'Claude Mama 설정',
+    title: 'Claude Pet',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

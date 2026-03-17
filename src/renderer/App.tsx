@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useMamaState } from './hooks/useMamaState';
+import { usePetState } from './hooks/usePetState';
 import { useWidgetMode } from './hooks/useWidgetMode';
 import { Character } from './components/Character';
 import { SpeechBubble } from './components/SpeechBubble';
@@ -9,7 +9,7 @@ import { Locale, SkinConfig } from '../shared/types';
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
 
 function MainView() {
-  const mamaState = useMamaState();
+  const petState = usePetState();
   const { mode, onToggle } = useWidgetMode();
   const [locale, setLocale] = useState<Locale>(DEFAULT_LOCALE);
   const [skinConfig, setSkinConfig] = useState<SkinConfig | undefined>();
@@ -130,26 +130,26 @@ function MainView() {
     };
   }, [isDragging]);
 
-  const mood = mamaState?.mood ?? 'sleeping';
-  const message = mamaState?.message ?? t(locale, 'loading_message');
-  const utilizationPercent = mamaState?.utilizationPercent ?? 0;
-  const fiveHourPercent = mamaState?.fiveHourPercent ?? null;
-  const fiveHourResetsAt = mamaState?.fiveHourResetsAt ?? null;
-  const dataSource = mamaState?.dataSource ?? 'none';
-  const rateLimited = mamaState?.rateLimited ?? false;
+  const mood = petState?.mood ?? 'sleeping';
+  const message = petState?.message ?? t(locale, 'loading_message');
+  const utilizationPercent = petState?.utilizationPercent ?? 0;
+  const fiveHourPercent = petState?.fiveHourPercent ?? null;
+  const fiveHourResetsAt = petState?.fiveHourResetsAt ?? null;
+  const dataSource = petState?.dataSource ?? 'none';
+  const rateLimited = petState?.rateLimited ?? false;
 
   // Show speech bubble on message rotation (independent of bar state)
   useEffect(() => {
     if (message !== prevMessageRef.current) {
       prevMessageRef.current = message;
-      if (mamaState) {
+      if (petState) {
         const dir = window.screenY < 120 ? 'down' : 'up';
         setBubbleDirection(dir);
         setBubbleVisible(true);
         if (bubbleTimerRef.current) clearTimeout(bubbleTimerRef.current);
       }
     }
-  }, [message, mamaState]);
+  }, [message, petState]);
 
   const isExpanded = mode === 'expanded';
 
@@ -206,14 +206,14 @@ function MainView() {
     <OfflineLabel locale={locale} rateLimited={rateLimited} />
   ) : isExpanded ? (
     <div ref={barsRef} onClick={onToggle} style={{ display: 'flex', alignItems: 'flex-start', gap: 6, marginTop: 6, cursor: 'pointer' }}>
-      <WeeklyBar utilizationPercent={utilizationPercent} resetsAt={mamaState?.resetsAt ?? null} mood={mood} stale={isStale} />
+      <WeeklyBar utilizationPercent={utilizationPercent} resetsAt={petState?.resetsAt ?? null} mood={mood} stale={isStale} />
       {fiveHourPercent != null && (
         <FiveHourBar fiveHourPercent={fiveHourPercent} fiveHourResetsAt={fiveHourResetsAt} stale={isStale} />
       )}
     </div>
   ) : (
     <div ref={barsRef} onClick={onToggle} style={{ cursor: 'pointer' }}>
-      <MiniBar utilizationPercent={utilizationPercent} mood={mood} stale={isStale} resetsAt={mamaState?.resetsAt} />
+      <MiniBar utilizationPercent={utilizationPercent} mood={mood} stale={isStale} resetsAt={petState?.resetsAt} />
     </div>
   );
 

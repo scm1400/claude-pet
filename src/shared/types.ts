@@ -1,12 +1,18 @@
 /** Mood stages mapped to utilization thresholds */
-export type MamaMood = 'angry' | 'worried' | 'happy' | 'proud';
+export type PetMood = 'happy' | 'playful' | 'sleepy' | 'worried' | 'bored';
 
 /** Error expression types */
-export type MamaErrorExpression = 'confused' | 'sleeping';
+export type PetErrorExpression = 'confused' | 'sleeping';
+
+/** Pet event triggered by user interaction */
+export interface PetEvent {
+  type: 'feed' | 'play' | 'pet';
+  timestamp: string;
+}
 
 /** Data sent from main to renderer on each update */
-export interface MamaState {
-  mood: MamaMood | MamaErrorExpression;
+export interface PetState {
+  mood: PetMood | PetErrorExpression;
   utilizationPercent: number;
   fiveHourPercent: number | null;
   message: string;
@@ -16,12 +22,19 @@ export interface MamaState {
   stale: boolean;
   rateLimited: boolean;
   error: string | null;
+  hunger: number;
+  happiness: number;
+  energy: number;
+  exp: number;
+  level: number;
+  growthStage: 'baby' | 'teen' | 'adult';
+  lastEvent: PetEvent | null;
 }
 
 export type Locale = 'ko' | 'en' | 'ja' | 'zh';
 
 /** User preferences (persisted via electron-store) */
-export interface MamaSettings {
+export interface PetSettings {
   autoStart: boolean;
   characterVisible: boolean;
   locale: Locale;
@@ -58,7 +71,7 @@ export interface CollectionState {
 export interface DailyUtilRecord {
   date: string; // YYYY-MM-DD
   percent: number;
-  mood?: MamaMood | MamaErrorExpression;
+  mood?: PetMood | PetErrorExpression;
 }
 
 /** Input for trigger evaluation */
@@ -96,12 +109,12 @@ export interface BadgeState {
 }
 
 export interface BadgeTriggerContext extends TriggerContext {
-  proudCount: number;
-  angryCount: number;
+  happyCount: number;
+  worriedCount: number;
 }
 
 export type SkinMode = 'default' | 'single' | 'per-mood' | 'spritesheet';
-type Expression = MamaMood | MamaErrorExpression;
+type Expression = PetMood | PetErrorExpression;
 
 export interface SkinConfig {
   mode: SkinMode;
@@ -127,23 +140,23 @@ export type SkinUploadResponse =
 
 /** IPC channel names */
 export const IPC_CHANNELS = {
-  MAMA_STATE_UPDATE: 'mama:state-update',
-  MAMA_STATE_GET: 'mama:state-get',
-  SETTINGS_GET: 'mama:settings-get',
-  SETTINGS_SET: 'mama:settings-set',
-  SHOW_SETTINGS: 'mama:show-settings',
-  COLLECTION_GET: 'mama:collection-get',
-  COLLECTION_UPDATED: 'mama:collection-updated',
-  SHARE_CARD: 'mama:share-card',
-  SET_IGNORE_MOUSE: 'mama:set-ignore-mouse',
-  SAVE_POSITION: 'mama:save-position',
-  MOVE_WINDOW: 'mama:move-window',
-  SHOW_CONTEXT_MENU: 'mama:show-context-menu',
-  BADGE_GET: 'mama:badge-get',
-  BADGE_UNLOCKED: 'mama:badge-unlocked',
-  UPLOAD_SKIN: 'mama:upload-skin',
-  RESET_SKIN: 'mama:reset-skin',
-  GET_SKIN_CONFIG: 'mama:get-skin-config',
-  SKIN_CONFIG_UPDATED: 'mama:skin-config-updated',
-  DAILY_HISTORY_GET: 'mama:daily-history-get',
+  PET_STATE_UPDATE: 'pet:state-update',
+  PET_STATE_GET: 'pet:state-get',
+  SETTINGS_GET: 'pet:settings-get',
+  SETTINGS_SET: 'pet:settings-set',
+  SHOW_SETTINGS: 'pet:show-settings',
+  COLLECTION_GET: 'pet:collection-get',
+  COLLECTION_UPDATED: 'pet:collection-updated',
+  SHARE_CARD: 'pet:share-card',
+  SET_IGNORE_MOUSE: 'pet:set-ignore-mouse',
+  SAVE_POSITION: 'pet:save-position',
+  MOVE_WINDOW: 'pet:move-window',
+  SHOW_CONTEXT_MENU: 'pet:show-context-menu',
+  BADGE_GET: 'pet:badge-get',
+  BADGE_UNLOCKED: 'pet:badge-unlocked',
+  UPLOAD_SKIN: 'pet:upload-skin',
+  RESET_SKIN: 'pet:reset-skin',
+  GET_SKIN_CONFIG: 'pet:get-skin-config',
+  SKIN_CONFIG_UPDATED: 'pet:skin-config-updated',
+  DAILY_HISTORY_GET: 'pet:daily-history-get',
 } as const;

@@ -3,9 +3,9 @@ import path from 'path';
 import { registerIpcHandlers, getStore, setOnSettingsChanged } from './ipc-handlers';
 import { showSettingsWindow } from './settings-window';
 import { UsageTracker } from '../core/usage-tracker';
-import { computeMood } from '../core/mood-engine';
-import { getCurrentCommonQuoteId } from '../core/messages';
-import { IPC_CHANNELS, MamaState, MamaMood, TriggerContext, DailyUtilRecord, Locale, BadgeTriggerContext } from '../shared/types';
+import { computePetState, DEFAULT_PET_STATE } from '../core/pet-state-engine';
+import { getCurrentCommonQuoteId } from '../core/pet-messages';
+import { IPC_CHANNELS, PetState, PetMood, PetEvent, TriggerContext, DailyUtilRecord, Locale, BadgeTriggerContext } from '../shared/types';
 import { getContextualMessage } from '../core/contextual-messages';
 import { BadgeManager } from '../core/badge-manager';
 import { evaluateBadgeTriggers } from '../core/badge-triggers';
@@ -15,14 +15,16 @@ import { initAutoUpdater, checkForUpdatesManual } from './auto-updater';
 import { evaluateQuoteTriggers } from '../core/quote-triggers';
 import { QuoteCollectionManager } from '../core/quote-collection';
 import { setShareCardState, generateShareCard } from './share-card';
+import { EventWatcher } from './event-watcher';
 
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
 
 const isDev = !app.isPackaged;
 
 const usageTracker = new UsageTracker();
-let lastMamaState: MamaState | null = null;
-let lastUsageInput: Parameters<typeof computeMood>[0] | null = null;
+let lastPetState: PetState | null = null;
+let lastUsageInput: Parameters<typeof computePetState>[0] | null = null;
+let lastPetEvent: PetEvent | null = null;
 let messageRotationTimer: ReturnType<typeof setInterval> | null = null;
 const MESSAGE_ROTATION_MS = 120_000; // 2 minutes
 
@@ -31,17 +33,46 @@ let dailyHistory: DailyUtilRecord[] = [];
 let installDate: string;
 let firstApiCallSeen: boolean;
 let badgeManager: BadgeManager;
-let moodCounts: Record<string, number> = { angry: 0, worried: 0, happy: 0, proud: 0 };
+let moodCounts: Record<string, number> = { happy: 0, playful: 0, sleepy: 0, worried: 0, bored: 0 };
 let previousMood: string | null = null;
+let eventWatcher: EventWatcher | null = null;
+
+function getPreviousPetState() {
+  const storeInstance = getStore();
+  const saved = (storeInstance as any).get('petState', null);
+  if (saved && typeof saved === 'object') {
+    return {
+      hunger: saved.hunger ?? DEFAULT_PET_STATE.hunger,
+      happiness: saved.happiness ?? DEFAULT_PET_STATE.happiness,
+      energy: saved.energy ?? DEFAULT_PET_STATE.energy,
+      exp: saved.exp ?? DEFAULT_PET_STATE.exp,
+      level: saved.level ?? DEFAULT_PET_STATE.level,
+      growthStage: saved.growthStage ?? DEFAULT_PET_STATE.growthStage,
+    };
+  }
+  return { ...DEFAULT_PET_STATE };
+}
 
 function broadcastState(): void {
   if (!lastUsageInput) return;
   // Always read latest locale from store
   const locale = getStore().get('locale', DEFAULT_LOCALE) as import('../shared/types').Locale;
   lastUsageInput = { ...lastUsageInput, locale };
-  const state = computeMood(lastUsageInput);
-  lastMamaState = state;
+
+  const previousPetState = getPreviousPetState();
+  const state = computePetState(lastUsageInput, previousPetState, lastPetEvent);
+  lastPetState = state;
   setShareCardState(state);
+
+  // Persist pet state
+  (getStore() as any).set('petState', {
+    hunger: state.hunger,
+    happiness: state.happiness,
+    energy: state.energy,
+    exp: state.exp,
+    level: state.level,
+    growthStage: state.growthStage,
+  });
 
   // Evaluate triggers
   const now = new Date();
@@ -56,11 +87,11 @@ function broadcastState(): void {
   };
 
   // Override message with contextual variant if applicable
-  const isMamaMood = ['angry', 'worried', 'happy', 'proud'].includes(state.mood);
-  if (isMamaMood && !state.rateLimited) {
+  const isPetMood = ['happy', 'playful', 'sleepy', 'worried', 'bored'].includes(state.mood);
+  if (isPetMood && !state.rateLimited) {
     const locale = getStore().get('locale', DEFAULT_LOCALE) as Locale;
     const contextualMsg = getContextualMessage(
-      state.mood as MamaMood,
+      state.mood as PetMood,
       locale,
       ctx,
     );
@@ -86,7 +117,7 @@ function broadcastState(): void {
 
   // Track mood transitions for badge triggers
   if (previousMood !== state.mood) {
-    if (['angry', 'worried', 'happy', 'proud'].includes(state.mood)) {
+    if (['happy', 'playful', 'sleepy', 'worried', 'bored'].includes(state.mood)) {
       moodCounts[state.mood] = (moodCounts[state.mood] || 0) + 1;
       (getStore() as any).set('moodCounts', moodCounts);
     }
@@ -96,8 +127,8 @@ function broadcastState(): void {
   // Evaluate badge triggers (BEFORE firstApiCallSeen flip so badge_first_call can trigger)
   const badgeCtx: BadgeTriggerContext = {
     ...ctx,
-    proudCount: moodCounts.proud || 0,
-    angryCount: moodCounts.angry || 0,
+    happyCount: moodCounts.happy || 0,
+    worriedCount: moodCounts.worried || 0,
   };
   const newBadges = badgeManager.processTriggered(evaluateBadgeTriggers(badgeCtx), now);
   if (newBadges.length > 0) {
@@ -128,7 +159,7 @@ function broadcastState(): void {
 
   for (const w of BrowserWindow.getAllWindows()) {
     if (!w.isDestroyed()) {
-      w.webContents.send(IPC_CHANNELS.MAMA_STATE_UPDATE, state);
+      w.webContents.send(IPC_CHANNELS.PET_STATE_UPDATE, state);
     }
   }
 }
@@ -225,7 +256,16 @@ app.whenReady().then(async () => {
   dailyHistory = (storeInstance as any).get('dailyUtilization', []) as DailyUtilRecord[];
   const persistedBadges = (storeInstance as any).get('unlockedBadges', []) as any[];
   badgeManager = new BadgeManager(persistedBadges);
-  moodCounts = (storeInstance as any).get('moodCounts', { angry: 0, worried: 0, happy: 0, proud: 0 }) as Record<string, number>;
+  moodCounts = (storeInstance as any).get('moodCounts', { happy: 0, playful: 0, sleepy: 0, worried: 0, bored: 0 }) as Record<string, number>;
+
+  // Start event watcher for slash command interactions
+  eventWatcher = new EventWatcher((event) => {
+    lastPetEvent = event;
+    broadcastState();
+    // Clear event after 5 minutes
+    setTimeout(() => { lastPetEvent = null; }, 5 * 60 * 1000);
+  });
+  eventWatcher.start();
 
   const win = createWindow();
 
@@ -288,7 +328,7 @@ app.whenReady().then(async () => {
     const locale = (getStore() as any).get('locale', DEFAULT_LOCALE) as Locale;
     const menu = Menu.buildFromTemplate([
       {
-        label: win.isVisible() ? 'Hide Mama' : 'Show Mama',
+        label: win.isVisible() ? 'Hide Pet' : 'Show Pet',
         click: () => { if (win.isVisible()) win.hide(); else { win.show(); win.focus(); } },
       },
       { type: 'separator' },
@@ -319,7 +359,7 @@ app.whenReady().then(async () => {
   });
 
   // Return current state on demand (for settings window)
-  ipcMain.handle(IPC_CHANNELS.MAMA_STATE_GET, () => lastMamaState);
+  ipcMain.handle(IPC_CHANNELS.PET_STATE_GET, () => lastPetState);
 
   // Create system tray
   createTray(win);
@@ -360,5 +400,9 @@ app.on('before-quit', () => {
   if (messageRotationTimer) {
     clearInterval(messageRotationTimer);
     messageRotationTimer = null;
+  }
+  if (eventWatcher) {
+    eventWatcher.stop();
+    eventWatcher = null;
   }
 });

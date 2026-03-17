@@ -1,9 +1,9 @@
 import React, { CSSProperties, forwardRef, useEffect, useState } from 'react';
-import { MamaMood, MamaErrorExpression, SkinConfig } from '../../shared/types';
-import mamaPng from '../assets/claude-mama.png';
+import { PetMood, PetErrorExpression, SkinConfig } from '../../shared/types';
+import petPng from '../assets/claude-mama.png';
 import { toFileUrl } from '../../shared/utils';
 
-type Expression = MamaMood | MamaErrorExpression;
+type Expression = PetMood | PetErrorExpression;
 
 interface CharacterProps {
   expression: Expression;
@@ -19,49 +19,24 @@ const IMG_H = 60;
 const HIT_AREA = 80;
 
 const MOOD_ANIMATIONS: Record<Expression, string> = {
-  angry: 'angryShake 0.5s ease-in-out infinite',
-  worried: 'worriedSway 2s ease-in-out infinite',
   happy: 'happyBounce 1.5s ease-in-out infinite',
-  proud: 'proudJump 1.2s ease-in-out infinite',
+  playful: 'proudJump 1.2s ease-in-out infinite',
+  sleepy: 'sleepingTilt 4s ease-in-out infinite',
+  worried: 'worriedSway 2s ease-in-out infinite',
+  bored: 'confusedWobble 1.5s ease-in-out infinite',
   confused: 'confusedWobble 1.5s ease-in-out infinite',
   sleeping: 'sleepingTilt 4s ease-in-out infinite',
 };
 
 const MOOD_AURA: Partial<Record<Expression, CSSProperties>> = {
-  angry: {
-    position: 'absolute', inset: -8, borderRadius: '50%',
-    animation: 'angryPulse 1.5s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
-  proud: {
-    position: 'absolute', inset: -8, borderRadius: '50%',
-    animation: 'proudGlow 2s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
-  happy: {
-    position: 'absolute', inset: -8, borderRadius: '50%',
-    animation: 'happyGlow 2s ease-in-out infinite',
-    pointerEvents: 'none',
-  },
+  playful: { position: 'absolute', inset: -8, borderRadius: '50%', animation: 'proudGlow 2s ease-in-out infinite', pointerEvents: 'none' },
+  happy: { position: 'absolute', inset: -8, borderRadius: '50%', animation: 'happyGlow 2s ease-in-out infinite', pointerEvents: 'none' },
 };
 
 function MoodOverlay({ expression }: { expression: Expression }) {
   const px = 2.5;
 
   switch (expression) {
-    case 'angry':
-      return (
-        <>
-          {[0, 1, 2].map((i) => (
-            <div key={i} style={{
-              position: 'absolute', top: -px * 2 - i * px * 3, left: px * 6 + i * px * 5,
-              width: px * 2, height: px * 2, background: '#E05050',
-              animation: `steamPuff 1s ease-out ${i * 0.3}s infinite`,
-            }} />
-          ))}
-        </>
-      );
-
     case 'worried':
       return (
         <>
@@ -113,7 +88,7 @@ function MoodOverlay({ expression }: { expression: Expression }) {
         </>
       );
 
-    case 'proud':
+    case 'playful':
       return (
         <>
           {/* Sparkles */}
@@ -146,6 +121,19 @@ function MoodOverlay({ expression }: { expression: Expression }) {
         </>
       );
 
+    case 'bored':
+      return (
+        <div style={{
+          position: 'absolute', top: -px * 5, right: -px * 2,
+          fontSize: px * 5, fontWeight: 'bold', color: '#9ca3af',
+          fontFamily: 'monospace',
+          animation: 'floatQuestion 1.5s ease-in-out infinite',
+          imageRendering: 'pixelated',
+        }}>
+          ...
+        </div>
+      );
+
     case 'confused':
       return (
         <div style={{
@@ -157,6 +145,24 @@ function MoodOverlay({ expression }: { expression: Expression }) {
         }}>
           ?
         </div>
+      );
+
+    case 'sleepy':
+      return (
+        <>
+          {/* Zzz only, no stars */}
+          {['z', 'z', 'Z'].map((ch, i) => (
+            <div key={i} style={{
+              position: 'absolute', top: -px * 2, right: -px * 3,
+              fontSize: px * (3 + i), fontWeight: 'bold', color: '#3B82F6',
+              fontFamily: 'monospace', imageRendering: 'pixelated',
+              animation: `zzz 2s ease-out ${i * 0.65}s infinite`,
+              lineHeight: 1,
+            }}>
+              {ch}
+            </div>
+          ))}
+        </>
       );
 
     case 'sleeping':
@@ -202,7 +208,7 @@ export const Character = forwardRef<HTMLDivElement, CharacterProps>(
     let spriteAnim: { startFrame: number; endFrame: number; fps: number } | null = null;
 
     // Determine image source based on skin config
-    let imgSrc = mamaPng;
+    let imgSrc = petPng;
     let spriteBgStyle: CSSProperties | null = null;
 
     if (skinConfig) {
@@ -274,9 +280,8 @@ export const Character = forwardRef<HTMLDivElement, CharacterProps>(
       height: '100%',
       objectFit: 'contain',
       imageRendering: 'pixelated',
-      ...(!spriteBgStyle && expression === 'sleeping' ? { filter: 'brightness(0.85) saturate(0.7)', opacity: 0.8 } : {}),
-      ...(!spriteBgStyle && expression === 'angry' ? { filter: 'saturate(1.2) brightness(1.05)' } : {}),
-      ...(!spriteBgStyle && expression === 'proud' ? { filter: 'brightness(1.1) saturate(1.1)' } : {}),
+      ...(!spriteBgStyle && (expression === 'sleeping' || expression === 'sleepy') ? { filter: 'brightness(0.85) saturate(0.7)', opacity: 0.8 } : {}),
+      ...(!spriteBgStyle && expression === 'playful' ? { filter: 'brightness(1.1) saturate(1.1)' } : {}),
     };
 
     const auraStyle = MOOD_AURA[expression];
@@ -290,7 +295,7 @@ export const Character = forwardRef<HTMLDivElement, CharacterProps>(
       >
         <div style={containerStyle}>
           {auraStyle && <div style={auraStyle as CSSProperties} />}
-          {spriteBgStyle ? <div style={spriteBgStyle} /> : <img src={imgSrc} alt="Claude Mama" style={imgStyle} draggable={false} />}
+          {spriteBgStyle ? <div style={spriteBgStyle} /> : <img src={imgSrc} alt="Claude Pet" style={imgStyle} draggable={false} />}
           {!spriteBgStyle && <MoodOverlay expression={expression} />}
         </div>
         {hasNewMessage && (

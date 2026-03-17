@@ -1,6 +1,6 @@
 import { ipcMain, BrowserWindow } from 'electron';
 import Store from 'electron-store';
-import { IPC_CHANNELS, MamaSettings, SkinConfig } from '../shared/types';
+import { IPC_CHANNELS, PetSettings, SkinConfig } from '../shared/types';
 import { showSettingsWindow } from './settings-window';
 import { updateAutoLaunch } from './auto-launch';
 import { QuoteCollectionManager } from '../core/quote-collection';
@@ -9,7 +9,7 @@ import { BadgeManager } from '../core/badge-manager';
 import { DEFAULT_LOCALE } from '../shared/i18n';
 import { uploadSkinImage, resetSkin, getSkinConfig, saveSkinConfig } from './skin-manager';
 
-const defaults: MamaSettings = {
+const defaults: PetSettings = {
   autoStart: true,
   characterVisible: true,
   locale: DEFAULT_LOCALE,
@@ -18,7 +18,7 @@ const defaults: MamaSettings = {
 
 const store = new Store({ defaults });
 
-export function getStore(): Store<MamaSettings> {
+export function getStore(): Store<PetSettings> {
   return store;
 }
 
@@ -37,9 +37,9 @@ export function registerIpcHandlers(
     return store.store;
   });
 
-  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, async (_event, settings: Partial<MamaSettings>) => {
+  ipcMain.handle(IPC_CHANNELS.SETTINGS_SET, async (_event, settings: Partial<PetSettings>) => {
     for (const [key, value] of Object.entries(settings)) {
-      store.set(key as keyof MamaSettings, value);
+      store.set(key as keyof PetSettings, value);
     }
 
     // Sync auto-launch preference

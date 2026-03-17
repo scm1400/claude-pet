@@ -1,8 +1,8 @@
 import React, { CSSProperties, useState, useEffect } from 'react';
-import { MamaMood, MamaErrorExpression, Locale } from '../../shared/types';
+import { PetMood, PetErrorExpression, Locale } from '../../shared/types';
 import { t, DEFAULT_LOCALE } from '../../shared/i18n';
 
-type Expression = MamaMood | MamaErrorExpression;
+type Expression = PetMood | PetErrorExpression;
 
 const MOOD_COLORS: Record<Expression, string> = {
   angry: '#ef4444',

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { evaluateContextTrigger, getContextualMessage } from '../contextual-messages';
-import { TriggerContext, MamaMood, DailyUtilRecord } from '../../shared/types';
+import { TriggerContext, PetMood, DailyUtilRecord } from '../../shared/types';
 
 function makeCtx(overrides: Partial<TriggerContext> = {}): TriggerContext {
   return {
@@ -74,7 +74,7 @@ describe('evaluateContextTrigger', () => {
 describe('getContextualMessage', () => {
   it('returns contextual message when trigger matches mood', () => {
     const ctx = makeCtx({ now: new Date('2026-03-14T10:00:00Z') });
-    const msg = getContextualMessage('angry', 'ko', ctx);
+    const msg = getContextualMessage('worried', 'ko', ctx);
     expect(msg).toBeTruthy();
     expect(typeof msg).toBe('string');
   });
