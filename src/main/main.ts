@@ -1,5 +1,7 @@
 import { app, BrowserWindow, ipcMain, screen, Menu, dialog, protocol, net } from 'electron';
 import path from 'path';
+import * as fs from 'fs';
+import * as os from 'os';
 import { registerIpcHandlers, getStore, setOnSettingsChanged } from './ipc-handlers';
 import { showSettingsWindow } from './settings-window';
 import { UsageTracker } from '../core/usage-tracker';
@@ -37,6 +39,16 @@ let moodCounts: Record<string, number> = { happy: 0, playful: 0, sleepy: 0, worr
 let previousMood: string | null = null;
 let eventWatcher: EventWatcher | null = null;
 
+const PET_NAME_FILE = path.join(os.homedir(), '.claude-pet', 'name.txt');
+
+function readPetName(): string | null {
+  try {
+    return fs.readFileSync(PET_NAME_FILE, 'utf-8').trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 function getPreviousPetState() {
   const storeInstance = getStore();
   const saved = (storeInstance as any).get('petState', null);
@@ -57,7 +69,8 @@ function broadcastState(): void {
   if (!lastUsageInput) return;
   // Always read latest locale from store
   const locale = getStore().get('locale', DEFAULT_LOCALE) as import('../shared/types').Locale;
-  lastUsageInput = { ...lastUsageInput, locale };
+  const petName = readPetName();
+  lastUsageInput = { ...lastUsageInput, locale, petName };
 
   const previousPetState = getPreviousPetState();
   const state = computePetState(lastUsageInput, previousPetState, lastPetEvent);

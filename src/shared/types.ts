@@ -29,6 +29,7 @@ export interface PetState {
   level: number;
   growthStage: 'baby' | 'teen' | 'adult';
   lastEvent: PetEvent | null;
+  petName: string | null;
 }
 
 export type Locale = 'ko' | 'en' | 'ja' | 'zh';

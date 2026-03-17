@@ -14,6 +14,7 @@ export interface UsageInput {
   stale?: boolean;
   rateLimited?: boolean;
   locale?: Locale;
+  petName?: string | null;
 }
 
 interface PreviousPetState {
@@ -77,6 +78,7 @@ export function computePetState(
     stale = false,
     rateLimited = false,
     locale = DEFAULT_LOCALE,
+    petName = null,
   } = input;
 
   const basePetFields = {
@@ -87,6 +89,7 @@ export function computePetState(
     level: prev.level,
     growthStage: prev.growthStage,
     lastEvent: lastEvent ?? null,
+    petName: petName ?? null,
   };
 
   // No credentials → sleeping
@@ -264,5 +267,6 @@ export function computePetState(
     rateLimited: false,
     error: null,
     lastEvent: lastEvent ?? null,
+    petName: petName ?? null,
   };
 }

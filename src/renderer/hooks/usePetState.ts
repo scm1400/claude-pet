@@ -36,7 +36,7 @@ export function usePetState(): PetState | null {
           message: '', resetsAt: null, fiveHourResetsAt: null,
           dataSource: 'api' as const, stale: false, rateLimited: false, error: null,
           hunger: 50, happiness: 50, energy: 50, exp: 0, level: 1,
-          growthStage: 'baby' as const, lastEvent: null,
+          growthStage: 'baby' as const, lastEvent: null, petName: null,
         };
         setState({ ...base, mood, utilizationPercent: DEBUG_UTILIZATION[mood], message });
         console.log(`🎭 Mood set to: ${mood} (${locale})`);
