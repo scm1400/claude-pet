@@ -178,6 +178,7 @@ function MainView() {
       <Character
         ref={characterRef}
         expression={mood}
+        growthStage={petState?.growthStage}
         isDragging={isDragging}
         skinConfig={skinConfig}
       />

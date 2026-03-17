@@ -9,7 +9,7 @@ Unit tests for the core business logic layer, executed by Vitest. Each test file
 ## Key Files
 | File | Description |
 |------|-------------|
-| `mood-engine.test.ts` | Tests for `computeMood()`: covers all mood thresholds, error states (NO_CREDENTIALS, 429 rate-limited, API error), 5-hour override, and rate-limited + JSONL-data combinations |
+| `pet-state-engine.test.ts` | Tests for `computePetState()`: covers all mood thresholds, error states (NO_CREDENTIALS, 429 rate-limited, API error), 5-hour override, and rate-limited + JSONL-data combinations |
 | `quote-triggers.test.ts` | Tests for `evaluateQuoteTriggers()`: verifies that the correct quote IDs are returned for various `TriggerContext` scenarios |
 | `badge-triggers.test.ts` | Tests for `evaluateBadgeTriggers()`: verifies badge award conditions including streak, proud/angry counts, and timing criteria |
 | `quote-collection.test.ts` | Tests for `QuoteCollectionManager`: serialization, deserialization, deduplication of unlocked quotes, and `getState()` output shape |
@@ -51,7 +51,7 @@ Unit tests for the core business logic layer, executed by Vitest. Each test file
 
 ## Dependencies
 ### Internal
-- `../../core/mood-engine`, `../../core/quote-triggers`, `../../core/badge-triggers`, `../../core/quote-collection`, `../../core/contextual-messages`
+- `../../core/pet-state-engine`, `../../core/quote-triggers`, `../../core/badge-triggers`, `../../core/quote-collection`, `../../core/contextual-messages`
 - `../../shared/types`
 
 ### External

@@ -42,7 +42,7 @@ Full-page React views rendered inside the settings `BrowserWindow` (loaded at `i
 
 ## Dependencies
 ### Internal
-- `../../shared/types` — `MamaSettings`, `MamaState`, `Locale`, `SkinConfig`, `SkinMode`, `CollectionState`, `BadgeState`, `QuoteRarity`, `BadgeTier`
+- `../../shared/types` — `PetSettings`, `PetState`, `Locale`, `SkinConfig`, `SkinMode`, `CollectionState`, `BadgeState`, `QuoteRarity`, `BadgeTier`
 - `../../shared/i18n` — `t()`, `LOCALE_LABELS`, `UIStringKey`, `DEFAULT_LOCALE`
 - `../../core/quote-registry` — `QUOTE_REGISTRY`
 - `../../core/badge-registry` — `BADGE_REGISTRY`

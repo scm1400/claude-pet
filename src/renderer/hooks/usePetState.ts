@@ -32,9 +32,11 @@ export function usePetState(): PetState | null {
         const pool = MESSAGE_POOLS[locale]?.[mood as keyof typeof MESSAGE_POOLS[typeof locale]] ?? MESSAGE_POOLS.en[mood as keyof typeof MESSAGE_POOLS['en']];
         const message = `[DEBUG] ${pool[Math.floor(Math.random() * pool.length)]}`;
         const base = realStateRef.current ?? {
-          mood: 'sleeping', utilizationPercent: 0, fiveHourPercent: null,
+          mood: 'sleeping' as const, utilizationPercent: 0, fiveHourPercent: null,
           message: '', resetsAt: null, fiveHourResetsAt: null,
           dataSource: 'api' as const, stale: false, rateLimited: false, error: null,
+          hunger: 50, happiness: 50, energy: 50, exp: 0, level: 1,
+          growthStage: 'baby' as const, lastEvent: null,
         };
         setState({ ...base, mood, utilizationPercent: DEBUG_UTILIZATION[mood], message });
         console.log(`🎭 Mood set to: ${mood} (${locale})`);

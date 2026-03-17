@@ -1,0 +1,16 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm run:*)",
+      "Bash(node:*)",
+      "Bash(git status:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(wc -l ./src/core/*.ts ./src/main/*.ts ./src/renderer/*.tsx)",
+      "mcp__plugin_oh-my-claudecode_t__state_write",
+      "Bash(npx vitest:*)"
+    ]
+  }
+}

@@ -40,9 +40,9 @@ Reusable UI components for the widget view. Each component is self-contained, re
 
 ## Dependencies
 ### Internal
-- `../../shared/types` — `MamaMood`, `MamaErrorExpression`, `SkinConfig`, `Locale`
+- `../../shared/types` — `PetMood`, `PetErrorExpression`, `SkinConfig`, `Locale`
 - `../../shared/i18n` — `t()`, `DEFAULT_LOCALE`
-- `../assets/claude-mama.png` — default character sprite (bundled by Vite)
+- `../assets/claude-pet.png` — default character sprite (bundled by Vite)
 
 ### External
 - `react` ^19

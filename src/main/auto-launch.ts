@@ -5,13 +5,13 @@ const AutoLaunch = require('auto-launch') as new (opts: { name: string; path?: s
   isEnabled(): Promise<boolean>;
 };
 
-let mamaAutoLaunch: InstanceType<typeof AutoLaunch> | null = null;
+let petAutoLaunch: InstanceType<typeof AutoLaunch> | null = null;
 
 function getAutoLaunch(): InstanceType<typeof AutoLaunch> | null {
-  if (mamaAutoLaunch) return mamaAutoLaunch;
+  if (petAutoLaunch) return petAutoLaunch;
   try {
-    mamaAutoLaunch = new AutoLaunch({ name: 'Claude Pet' });
-    return mamaAutoLaunch;
+    petAutoLaunch = new AutoLaunch({ name: 'Claude Pet' });
+    return petAutoLaunch;
   } catch {
     // Fails in dev/non-packaged mode — no Electron app path available
     return null;

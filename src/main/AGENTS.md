@@ -4,7 +4,7 @@
 # src/main/
 
 ## Purpose
-The `main/` directory contains the Electron main process. It owns the application lifecycle: creating and positioning the transparent frameless widget window, setting up the system tray, registering all IPC handlers, polling usage data via `UsageTracker`, computing and broadcasting `MamaState` to all renderer windows, managing the quote collection and badge system, generating share cards, and handling auto-update and auto-launch. This is the only layer that imports from the `electron` package.
+The `main/` directory contains the Electron main process. It owns the application lifecycle: creating and positioning the transparent frameless widget window, setting up the system tray, registering all IPC handlers, polling usage data via `UsageTracker`, computing and broadcasting `PetState` to all renderer windows, managing the quote collection and badge system, generating share cards, and handling auto-update and auto-launch. This is the only layer that imports from the `electron` package.
 
 ## Key Files
 | File | Description |
@@ -16,7 +16,7 @@ The `main/` directory contains the Electron main process. It owns the applicatio
 | `tray.ts` | Creates the system tray icon with a context menu (show/hide, share card, settings, update check, quit) |
 | `auto-launch.ts` | Wraps the `auto-launch` npm package; exports `syncAutoLaunch()` (called on startup) and `updateAutoLaunch()` (called on settings change) |
 | `auto-updater.ts` | Initializes `electron-updater` with GitHub Releases; handles update-available dialog and silent download |
-| `share-card.ts` | Generates a share-card image (PNG) from the current `MamaState` using an off-screen `BrowserWindow` with a dedicated HTML template; copies result to clipboard |
+| `share-card.ts` | Generates a share-card image (PNG) from the current `PetState` using an off-screen `BrowserWindow` with a dedicated HTML template; copies result to clipboard |
 | `skin-manager.ts` | Handles custom character skin uploads (file dialog → copy to app data dir), reset, and config persistence |
 
 ## Subdirectories
@@ -29,7 +29,7 @@ The `main/` directory contains the Electron main process. It owns the applicatio
 ### Working In This Directory
 - This is the **only** directory that may import from `electron`. Do not add Electron imports to `core/` or `shared/`.
 - The main process is compiled by `tsconfig.main.json` (CommonJS, output to `dist/main/main/`). Restart Electron or run `npm run build:main` after changes.
-- `broadcastState()` in `main.ts` is the central dispatch function: it re-computes mood, evaluates quote and badge triggers, updates daily history, and sends `MAMA_STATE_UPDATE` to all windows. All state mutations should flow through here.
+- `broadcastState()` in `main.ts` is the central dispatch function: it re-computes mood, evaluates quote and badge triggers, updates daily history, and sends `PET_STATE_UPDATE` to all windows. All state mutations should flow through here.
 - The widget window is **200×250 px**, transparent, frameless, `skipTaskbar: true`, always-on-top by default. It uses a hit-test pattern: the renderer sends `SET_IGNORE_MOUSE` IPC to toggle click-through based on cursor position over the character.
 - Window position is persisted to `electron-store` as `windowPosition: { x, y }` and clamped to the nearest display's work area on every move.
 - The `getStore()` singleton from `ipc-handlers.ts` is the single source of truth for persisted settings. Do not create additional `Store` instances.
@@ -50,8 +50,8 @@ The `main/` directory contains the Electron main process. It owns the applicatio
 ## Dependencies
 ### Internal
 - `../core/usage-tracker` — `UsageTracker`
-- `../core/mood-engine` — `computeMood()`
-- `../core/messages` — `getMessage()`, `getCurrentCommonQuoteId()`
+- `../core/pet-state-engine` — `computePetState()`
+- `../core/pet-messages` — `getMessage()`, `getCurrentCommonQuoteId()`
 - `../core/contextual-messages` — `getContextualMessage()`
 - `../core/quote-triggers` — `evaluateQuoteTriggers()`
 - `../core/quote-collection` — `QuoteCollectionManager`

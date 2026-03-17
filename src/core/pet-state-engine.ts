@@ -216,13 +216,7 @@ export function computePetState(
   }
 
   // --- Mood derivation ---
-  let mood: PetMood | PetErrorExpression;
-  if (recentEvent && lastEvent) {
-    // For event reactions, derive mood from event type but use special message keys
-    mood = deriveMood(hunger, happiness, energy);
-  } else {
-    mood = deriveMood(hunger, happiness, energy);
-  }
+  const mood: PetMood | PetErrorExpression = deriveMood(hunger, happiness, energy);
 
   // --- Growth ---
   const expGain = (weeklyUtilization > 0 ? 1 : 0) + (recentEvent ? 5 : 0);

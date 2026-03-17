@@ -1,14 +1,10 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
+import { PetEvent } from '../shared/types';
 
 const EVENTS_DIR = path.join(os.homedir(), '.claude-pet');
 const EVENTS_FILE = path.join(EVENTS_DIR, 'events.jsonl');
-
-interface PetEvent {
-  type: 'feed' | 'play' | 'pet';
-  timestamp: string;
-}
 
 type EventCallback = (event: PetEvent) => void;
 
@@ -142,8 +138,22 @@ export class EventWatcher {
           // Invalid JSON line — skip silently
         }
       }
+
+      this.trimIfNeeded();
     } catch {
       // File read error — log but never throw
     }
+  }
+
+  private trimIfNeeded(): void {
+    try {
+      const content = fs.readFileSync(EVENTS_FILE, 'utf-8');
+      const lines = content.split('\n').filter(l => l.trim());
+      if (lines.length > 100) {
+        const trimmed = lines.slice(-50).join('\n') + '\n';
+        fs.writeFileSync(EVENTS_FILE, trimmed);
+        this.lastReadPosition = Buffer.byteLength(trimmed);
+      }
+    } catch { /* ignore */ }
   }
 }

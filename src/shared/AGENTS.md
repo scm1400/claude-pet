@@ -9,7 +9,7 @@ The `shared/` directory contains code consumed by both the Electron main process
 ## Key Files
 | File | Description |
 |------|-------------|
-| `types.ts` | All shared TypeScript types and interfaces: `MamaMood`, `MamaErrorExpression`, `MamaState`, `MamaSettings`, `Locale`, `QuoteRarity`, `QuoteEntry`, `UnlockedQuote`, `CollectionState`, `DailyUtilRecord`, `TriggerContext`, `ContextTrigger`, `BadgeTier`, `BadgeEntry`, `UnlockedBadge`, `BadgeState`, `BadgeTriggerContext`, `SkinMode`, `SkinConfig`. Also exports the `IPC_CHANNELS` constant object with all IPC channel name strings. |
+| `types.ts` | All shared TypeScript types and interfaces: `PetMood`, `PetErrorExpression`, `PetState`, `PetSettings`, `Locale`, `QuoteRarity`, `QuoteEntry`, `UnlockedQuote`, `CollectionState`, `DailyUtilRecord`, `TriggerContext`, `ContextTrigger`, `BadgeTier`, `BadgeEntry`, `UnlockedBadge`, `BadgeState`, `BadgeTriggerContext`, `SkinMode`, `SkinConfig`. Also exports the `IPC_CHANNELS` constant object with all IPC channel name strings. |
 | `i18n.ts` | `detectLocale()` (Electron app or `navigator.language` fallback), `DEFAULT_LOCALE` (module-level constant), `UI_STRINGS` (nested const object for ko/en/ja/zh), `UIStringKey` (derived union type), `t(locale, key)` translation function, `LOCALE_LABELS` display names. |
 
 ## Subdirectories

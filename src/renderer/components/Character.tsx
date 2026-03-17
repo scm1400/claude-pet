@@ -7,6 +7,7 @@ type Expression = PetMood | PetErrorExpression;
 
 interface CharacterProps {
   expression: Expression;
+  growthStage?: 'baby' | 'teen' | 'adult';
   hasNewMessage?: boolean;
   isDragging?: boolean;
   skinConfig?: SkinConfig;
@@ -203,7 +204,7 @@ function MoodOverlay({ expression }: { expression: Expression }) {
 }
 
 export const Character = forwardRef<HTMLDivElement, CharacterProps>(
-  function Character({ expression, hasNewMessage, isDragging, skinConfig, onMouseEnter, onMouseLeave }, ref) {
+  function Character({ expression, growthStage, hasNewMessage, isDragging, skinConfig, onMouseEnter, onMouseLeave }, ref) {
     const [spriteFrame, setSpriteFrame] = useState(0);
     let spriteAnim: { startFrame: number; endFrame: number; fps: number } | null = null;
 
@@ -268,11 +269,20 @@ export const Character = forwardRef<HTMLDivElement, CharacterProps>(
       cursor: isDragging ? 'grabbing' : 'grab',
     };
 
+    const growthScale = growthStage === 'baby' ? 0.75 : growthStage === 'teen' ? 0.9 : 1.0;
+    const growthGlow = growthStage === 'adult' ? '0 0 12px rgba(255, 215, 0, 0.4)' :
+                       growthStage === 'teen' ? '0 0 6px rgba(100, 200, 255, 0.3)' : 'none';
+
     const containerStyle: CSSProperties = {
       position: 'relative',
       width: IMG_W,
       height: IMG_H,
       animation: MOOD_ANIMATIONS[expression],
+      transform: `scale(${growthScale})`,
+      filter: growthStage === 'adult' ? 'brightness(1.1) saturate(1.1)' : undefined,
+      boxShadow: growthGlow,
+      borderRadius: '50%',
+      transition: 'transform 0.5s ease, box-shadow 0.5s ease',
     };
 
     const imgStyle: CSSProperties = {
