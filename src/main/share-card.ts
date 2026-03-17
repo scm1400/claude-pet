@@ -6,6 +6,8 @@ import { t, DEFAULT_LOCALE } from '../shared/i18n';
 import { PetState, Locale } from '../shared/types';
 import { getQuoteById } from '../core/quote-registry';
 
+const projectRoot = path.resolve(__dirname, '..', '..', '..');
+
 let offscreenWin: BrowserWindow | null = null;
 let isGenerating = false;
 
@@ -31,7 +33,7 @@ function getOffscreenWindow(): BrowserWindow {
   }
 
   const templatePath = app.isPackaged
-    ? path.join(app.getAppPath(), 'dist/renderer/share-card-template/card.html')
+    ? path.join(projectRoot, 'dist/renderer/share-card-template/card.html')
     : path.join(process.cwd(), 'src/renderer/share-card-template/card.html');
 
   offscreenWin = new BrowserWindow({
@@ -73,7 +75,7 @@ export async function generateShareCard(quoteId?: string): Promise<boolean> {
     });
 
     const charImagePath = app.isPackaged
-      ? path.join(app.getAppPath(), 'dist/renderer/assets/claude-pet.png')
+      ? path.join(projectRoot, 'dist/renderer/assets/claude-pet.png')
       : path.join(process.cwd(), 'src/renderer/assets/claude-pet.png');
 
     let characterDataUrl = '';

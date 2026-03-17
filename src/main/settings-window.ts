@@ -1,7 +1,10 @@
 import { BrowserWindow, app } from 'electron';
 import path from 'path';
+import fs from 'fs';
 
-const isDev = !app.isPackaged;
+const projectRoot = path.resolve(__dirname, '..', '..', '..');
+const rendererIndex = path.join(projectRoot, 'dist', 'renderer', 'index.html');
+const isDev = !app.isPackaged && !fs.existsSync(rendererIndex);
 
 let settingsWin: BrowserWindow | null = null;
 
@@ -25,7 +28,7 @@ export function createSettingsWindow(): BrowserWindow {
     settingsWin.loadURL('http://localhost:5173/#/settings');
   } else {
     settingsWin.loadFile(
-      path.join(app.getAppPath(), 'dist/renderer/index.html'),
+      path.join(projectRoot, 'dist/renderer/index.html'),
       { hash: '/settings' }
     );
   }

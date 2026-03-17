@@ -21,7 +21,11 @@ import { EventWatcher } from './event-watcher';
 
 import { t, DEFAULT_LOCALE } from '../shared/i18n';
 
-const isDev = !app.isPackaged;
+// __dirname = dist/main/main/ → project root is 3 levels up
+const projectRoot = path.resolve(__dirname, '..', '..', '..');
+// In dev mode when not packaged AND no built renderer exists (i.e. vite dev server expected)
+const rendererIndex = path.join(projectRoot, 'dist', 'renderer', 'index.html');
+const isDev = !app.isPackaged && !fs.existsSync(rendererIndex);
 
 const usageTracker = new UsageTracker();
 let lastPetState: PetState | null = null;
@@ -219,7 +223,7 @@ function createWindow(): BrowserWindow {
     win.loadURL('http://localhost:5173');
     win.webContents.openDevTools({ mode: 'detach' });
   } else {
-    win.loadFile(path.join(app.getAppPath(), 'dist/renderer/index.html'));
+    win.loadFile(path.join(projectRoot, 'dist/renderer/index.html'));
   }
 
   // Send state updates to ALL windows on each poll result
